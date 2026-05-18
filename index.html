@@ -3,160 +3,299 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistem Pendataan Pegawai</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Sistem Manajemen Pegawai - CRUD Lengkap</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
-    
+
     <style>
-        /* CSS Tambahan untuk memastikan Tab berfungsi meskipun Tailwind gagal load */
-        .tab-content { display: none; }
-        .tab-content.active { display: grid; }
-        .hidden { display: none !important; }
-        
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        .animate-fadeIn { animation: fadeIn 0.3s ease-in-out; }
-        
-        .tab-btn.active {
-            border-bottom: 3px solid #2563eb;
-            color: #2563eb;
-            font-weight: bold;
+        /* CSS MURNI UNTUK STRUKTUR (Mencegah tampilan berantakan) */
+        :root {
+            --primary: #2563eb;
+            --bg: #f8fafc;
+            --text: #1e293b;
         }
-        /* Memastikan tabel tidak tumpang tindih */
-        table { border-collapse: collapse; width: 100%; }
-        th, td { border: 1px solid #e2e8f0; padding: 8px; }
+
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg); color: var(--text); margin: 0; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        
+        /* HEADER */
+        .header { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .btn-add { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; }
+
+        /* FORM CONTAINER */
+        #form-container { background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); margin-bottom: 30px; display: none; overflow: hidden; }
+        #form-container.active { display: block; }
+
+        /* TAB SYSTEM */
+        .tabs { display: flex; background: #f1f5f9; border-bottom: 1px solid #e2e8f0; overflow-x: auto; }
+        .tab-btn { padding: 15px 20px; border: none; background: none; cursor: pointer; color: #64748b; font-weight: 600; white-space: nowrap; }
+        .tab-btn.active { color: var(--primary); border-bottom: 3px solid var(--primary); background: white; }
+
+        /* TAB CONTENT */
+        .tab-content { display: none; padding: 25px; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; }
+        .tab-content.active { display: grid; }
+
+        .form-group { display: flex; flex-direction: column; }
+        .form-group label { font-size: 12px; font-weight: bold; color: #64748b; margin-bottom: 5px; text-transform: uppercase; }
+        .form-group input, .form-group select { padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fcfcfc; }
+
+        .form-footer { padding: 20px; background: #f8fafc; text-align: right; border-top: 1px solid #e2e8f0; }
+        .btn-save { background: var(--primary); color: white; border: none; padding: 10px 30px; border-radius: 6px; cursor: pointer; }
+        .btn-cancel { background: #94a3b8; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; margin-right: 10px; }
+
+        /* TABLE */
+        .table-card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        .search-area { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        .search-area input { flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 8px; min-width: 200px; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th { background: #1e293b; color: white; padding: 12px; text-align: left; font-size: 13px; }
+        td { padding: 12px; border-bottom: 1px solid #eee; font-size: 14px; }
+        .btn-action { padding: 5px 10px; border: none; border-radius: 4px; cursor: pointer; color: white; font-size: 11px; margin-right: 2px; }
+
+        /* MODAL */
+        #detail-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; items-center; justify-content: center; z-index: 1000; padding: 20px; }
+        #detail-modal.active { display: flex; }
+        .modal-content { background: white; width: 100%; max-width: 800px; border-radius: 12px; max-height: 90vh; overflow-y: auto; padding: 30px; }
+        .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .detail-item { border-bottom: 1px solid #f1f5f9; padding: 8px 0; }
+        .detail-label { font-size: 11px; font-weight: bold; color: #94a3b8; text-transform: uppercase; }
+        
+        @media (max-width: 600px) {
+            .detail-grid { grid-template-columns: 1fr; }
+        }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-900">
+<body>
 
-    <div class="max-w-7xl mx-auto p-4 md:p-8">
-        <header class="flex flex-col md:flex-row justify-between items-center mb-8 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-            <div>
-                <h1 class="text-2xl font-bold">Data Pegawai RS</h1>
-                <p class="text-slate-500 text-sm">Kelola informasi SDM dengan mudah</p>
-            </div>
-            <button id="btn-toggle-form" class="mt-4 md:mt-0 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl font-semibold transition-all">
-                + Tambah Pegawai
-            </button>
-        </header>
-
-        <div id="form-container" class="hidden bg-white rounded-2xl shadow-lg border border-slate-200 mb-8 overflow-hidden animate-fadeIn">
-            <div class="bg-slate-50 p-4 border-b border-slate-200 flex justify-between items-center">
-                <h2 id="form-title" class="font-bold text-lg text-slate-700">Form Input Pegawai</h2>
-                <span id="mode-badge" class="bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded">Mode: Tambah Baru</span>
-            </div>
-
-            <div class="flex border-b border-slate-200 px-6 bg-white overflow-x-auto">
-                <button class="tab-btn active py-4 px-6 text-sm whitespace-nowrap" data-tab="pribadi">Data Pribadi</button>
-                <button class="tab-btn py-4 px-6 text-sm whitespace-nowrap" data-tab="pekerjaan">Data Pekerjaan</button>
-                <button class="tab-btn py-4 px-6 text-sm whitespace-nowrap" data-tab="pendidikan">Data Pendidikan</button>
-                <button class="tab-btn py-4 px-6 text-sm whitespace-nowrap" data-tab="keluarga">Keluarga & Kontak</button>
-            </div>
-
-            <form id="pegawai-form" class="p-8">
-                <input type="hidden" id="id_pegawai">
-
-                <div id="pribadi" class="tab-content active grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <div><label class="block text-xs font-bold mb-1 uppercase text-slate-500">NIK</label><input type="number" id="nik" class="w-full border rounded-lg p-2 bg-slate-50" required></div>
-                    <div><label class="block text-xs font-bold mb-1 uppercase text-slate-500">Nama</label><input type="text" id="nama" class="w-full border rounded-lg p-2 bg-slate-50" required></div>
-                    <div><label class="block text-xs font-bold mb-1 uppercase text-slate-500">Jenis Kelamin</label>
-                        <select id="jenis_kelamin" class="w-full border rounded-lg p-2 bg-slate-50"><option>Laki-laki</option><option>Perempuan</option></select>
-                    </div>
-                    <div><label class="block text-xs font-bold mb-1 uppercase text-slate-500">Agama</label>
-                        <select id="agama" class="w-full border rounded-lg p-2 bg-slate-50"><option>Islam</option><option>Kristen</option><option>Katolik</option><option>Hindu</option><option>Buddha</option></select>
-                    </div>
-                    <div><label class="block text-xs font-bold mb-1 uppercase text-slate-500">Tempat Lahir</label><input type="text" id="tempat_lahir" class="w-full border rounded-lg p-2 bg-slate-50"></div>
-                    <div><label class="block text-xs font-bold mb-1 uppercase text-slate-500">Tanggal Lahir</label><input type="date" id="tanggal_lahir" class="w-full border rounded-lg p-2 bg-slate-50"></div>
-                </div>
-
-                <div id="pekerjaan" class="tab-content grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <div><label class="block text-xs font-bold mb-1 uppercase text-slate-500">NIP</label><input type="number" id="nip" class="w-full border rounded-lg p-2 bg-slate-50"></div>
-                    <div><label class="block text-xs font-bold mb-1 uppercase text-slate-500">Status</label>
-                        <select id="status" class="w-full border rounded-lg p-2 bg-slate-50"><option>PNS</option><option>PPPK</option><option>Kontrak</option><option>Tetap RS</option></select>
-                    </div>
-                    <div><label class="block text-xs font-bold mb-1 uppercase text-slate-500">Jabatan</label><input type="text" id="jabatan" class="w-full border rounded-lg p-2 bg-slate-50"></div>
-                    <div><label class="block text-xs font-bold mb-1 uppercase text-slate-500">Ruangan</label><input type="text" id="ruangan" class="w-full border rounded-lg p-2 bg-slate-50"></div>
-                    <div><label class="block text-xs font-bold mb-1 uppercase text-slate-500">Golongan</label><input type="text" id="gol" class="w-full border rounded-lg p-2 bg-slate-50"></div>
-                    <div><label class="block text-xs font-bold mb-1 uppercase text-slate-500">TMT Pangkat</label><input type="date" id="tmt_pangkat" class="w-full border rounded-lg p-2 bg-slate-50"></div>
-                    <div><label class="block text-xs font-bold mb-1 uppercase text-slate-500">TMT Berikutnya</label><input type="date" id="tmt_berikutnya" class="w-full border rounded-lg p-2 bg-slate-50"></div>
-                    <div><label class="block text-xs font-bold mb-1 uppercase text-slate-500">Rentang BUP</label><input type="number" id="rentang_bup" class="w-full border rounded-lg p-2 bg-slate-50"></div>
-                    <div><label class="block text-xs font-bold mb-1 uppercase text-slate-500">TMT Pensiun</label><input type="date" id="tmt_pensiun" class="w-full border rounded-lg p-2 bg-slate-50"></div>
-                    <div><label class="block text-xs font-bold mb-1 uppercase text-slate-500">TMT CPNS</label><input type="date" id="tmt_cpns" class="w-full border rounded-lg p-2 bg-slate-50"></div>
-                    <div><label class="block text-xs font-bold mb-1 uppercase text-slate-500">Masuk RS</label><input type="date" id="masuk_rs" class="w-full border rounded-lg p-2 bg-slate-50"></div>
-                    <div><label class="block text-xs font-bold mb-1 uppercase text-slate-500">Masa Kerja RS</label><input type="text" id="masa_kerja_rs" class="w-full border rounded-lg p-2 bg-slate-200" readonly></div>
-                </div>
-
-                <div id="pendidikan" class="tab-content grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <div><label class="block text-xs font-bold mb-1 uppercase text-slate-500">Jenjang</label>
-                        <select id="jenjang" class="w-full border rounded-lg p-2 bg-slate-50"><option>D3</option><option>D4</option><option>S1</option><option>S2</option><option>Profesi</option></select>
-                    </div>
-                    <div><label class="block text-xs font-bold mb-1 uppercase text-slate-500">Fakultas</label><input type="text" id="fakultas" class="w-full border rounded-lg p-2 bg-slate-50"></div>
-                    <div><label class="block text-xs font-bold mb-1 uppercase text-slate-500">Jurusan</label><input type="text" id="jurusan" class="w-full border rounded-lg p-2 bg-slate-50"></div>
-                </div>
-
-                <div id="keluarga" class="tab-content grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <div><label class="block text-xs font-bold mb-1 uppercase text-slate-500">Status Keluarga</label>
-                        <select id="status_keluarga" class="w-full border rounded-lg p-2 bg-slate-50"><option>TK</option><option>K/0</option><option>K/1</option><option>K/2</option><option>K/3</option></select>
-                    </div>
-                    <div><label class="block text-xs font-bold mb-1 uppercase text-slate-500">Alamat</label><input type="text" id="alamat" class="w-full border rounded-lg p-2 bg-slate-50"></div>
-                    <div><label class="block text-xs font-bold mb-1 uppercase text-slate-500">BPJS Kes</label><input type="number" id="no_bpjsn" class="w-full border rounded-lg p-2 bg-slate-50"></div>
-                    <div><label class="block text-xs font-bold mb-1 uppercase text-slate-500">BPJS Ket / Taspen</label><input type="text" id="no_bpjsket_taspen" class="w-full border rounded-lg p-2 bg-slate-50"></div>
-                    <div><label class="block text-xs font-bold mb-1 uppercase text-slate-500">NPWP</label><input type="text" id="npwp" class="w-full border rounded-lg p-2 bg-slate-50"></div>
-                    <div><label class="block text-xs font-bold mb-1 uppercase text-slate-500">Email</label><input type="email" id="email" class="w-full border rounded-lg p-2 bg-slate-50"></div>
-                    <div><label class="block text-xs font-bold mb-1 uppercase text-slate-500">Telepon</label><input type="tel" id="no_telp" class="w-full border rounded-lg p-2 bg-slate-50"></div>
-                </div>
-
-                <div class="mt-8 pt-6 border-t border-slate-200 flex justify-end gap-3">
-                    <button type="button" id="btn-batal" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-6 py-2 rounded-xl transition-all">Tutup</button>
-                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-2 rounded-xl font-bold transition-all">Simpan Data</button>
-                </div>
-            </form>
+<div class="container">
+    <div class="header">
+        <div>
+            <h1 style="margin:0; font-size: 24px;">Pendataan Pegawai RS</h1>
+            <p style="margin:0; color: #64748b; font-size: 14px;">Update: CRUD Lengkap V.2</p>
         </div>
-
-        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
-            <div class="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
-                <h3 class="font-bold text-lg">Daftar Pegawai</h3>
-                <div class="flex gap-2 w-full md:w-auto">
-                    <input type="text" id="cari-pegawai" placeholder="Cari NIK/Nama..." class="border rounded-lg px-4 py-2 text-sm w-full md:w-64">
-                    <button onclick="eksporExcel()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm">Excel</button>
-                    <button onclick="eksporPDF()" class="bg-rose-600 text-white px-4 py-2 rounded-lg text-sm">PDF</button>
-                </div>
-            </div>
-
-            <div class="overflow-x-auto">
-                <table class="w-full text-left text-sm">
-                    <thead>
-                        <tr class="bg-slate-800 text-white">
-                            <th class="p-4">NIK</th>
-                            <th class="p-4">Nama</th>
-                            <th class="p-4">Jabatan</th>
-                            <th class="p-4">Masuk RS</th>
-                            <th class="p-4">Ruangan</th>
-                            <th class="p-4 text-center">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tabel-pegawai-body" class="divide-y">
-                        </tbody>
-                </table>
-            </div>
-        </div>
+        <button class="btn-add" id="btn-toggle-form">+ Tambah Pegawai</button>
     </div>
 
-    <div id="detail-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-2xl w-full max-w-4xl p-8 shadow-2xl max-h-[90vh] overflow-y-auto">
-            <div class="flex justify-between items-center mb-6 border-b pb-4">
-                <h2 class="text-2xl font-bold text-slate-800">Detail Lengkap Pegawai</h2>
-                <button onclick="tutupModal()" class="text-slate-400 hover:text-slate-600 text-3xl">&times;</button>
-            </div>
-            <div id="detail-content" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                </div>
-            <div class="mt-8 pt-6 border-t flex justify-end">
-                <button onclick="tutupModal()" class="bg-slate-800 text-white px-8 py-2 rounded-xl font-bold">Selesai</button>
-            </div>
+    <div id="form-container">
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab(event, 'pribadi')">Data Pribadi</button>
+            <button class="tab-btn" onclick="switchTab(event, 'pekerjaan')">Data Pekerjaan</button>
+            <button class="tab-btn" onclick="switchTab(event, 'pendidikan')">Pendidikan</button>
+            <button class="tab-btn" onclick="switchTab(event, 'keluarga')">Keluarga & Kontak</button>
         </div>
+
+        <form id="pegawai-form">
+            <input type="hidden" id="id_pegawai">
+            
+            <div id="pribadi" class="tab-content active">
+                <div class="form-group"><label>NIK</label><input type="number" id="nik" required></div>
+                <div class="form-group"><label>Nama Lengkap</label><input type="text" id="nama" required></div>
+                <div class="form-group"><label>Jenis Kelamin</label><select id="jenis_kelamin"><option>Laki-laki</option><option>Perempuan</option></select></div>
+                <div class="form-group"><label>Agama</label><select id="agama"><option>Islam</option><option>Kristen</option><option>Katolik</option><option>Hindu</option><option>Buddha</option></select></div>
+                <div class="form-group"><label>Tempat Lahir</label><input type="text" id="tempat_lahir"></div>
+                <div class="form-group"><label>Tanggal Lahir</label><input type="date" id="tanggal_lahir"></div>
+            </div>
+
+            <div id="pekerjaan" class="tab-content">
+                <div class="form-group"><label>NIP</label><input type="number" id="nip"></div>
+                <div class="form-group"><label>Status</label><select id="status"><option>PNS</option><option>PPPK</option><option>Kontrak</option><option>Tetap RS</option></select></div>
+                <div class="form-group"><label>Jabatan</label><input type="text" id="jabatan"></div>
+                <div class="form-group"><label>Golongan</label><input type="text" id="gol"></div>
+                <div class="form-group"><label>Ruangan</label><input type="text" id="ruangan"></div>
+                <div class="form-group"><label>TMT Pangkat</label><input type="date" id="tmt_pangkat"></div>
+                <div class="form-group"><label>TMT Berikutnya</label><input type="date" id="tmt_berikutnya"></div>
+                <div class="form-group"><label>Rentang BUP</label><input type="number" id="rentang_bup"></div>
+                <div class="form-group"><label>TMT Pensiun</label><input type="date" id="tmt_pensiun"></div>
+                <div class="form-group"><label>TMT CPNS</label><input type="date" id="tmt_cpns"></div>
+                <div class="form-group"><label>Masuk RS</label><input type="date" id="masuk_rs"></div>
+                <div class="form-group"><label>Masa Kerja RS</label><input type="text" id="masa_kerja_rs" readonly style="background: #eee;"></div>
+            </div>
+
+            <div id="pendidikan" class="tab-content">
+                <div class="form-group"><label>Jenjang</label><select id="jenjang"><option>D3</option><option>D4</option><option>S1</option><option>S2</option><option>Profesi</option></select></div>
+                <div class="form-group"><label>Fakultas</label><input type="text" id="fakultas"></div>
+                <div class="form-group"><label>Jurusan</label><input type="text" id="jurusan"></div>
+            </div>
+
+            <div id="keluarga" class="tab-content">
+                <div class="form-group"><label>Status Keluarga</label><select id="status_keluarga"><option>TK</option><option>K/0</option><option>K/1</option><option>K/2</option><option>K/3</option></select></div>
+                <div class="form-group"><label>Alamat</label><input type="text" id="alamat"></div>
+                <div class="form-group"><label>BPJS Kes</label><input type="number" id="no_bpjsn"></div>
+                <div class="form-group"><label>BPJS Ket/Taspen</label><input type="text" id="no_bpjsket_taspen"></div>
+                <div class="form-group"><label>NPWP</label><input type="text" id="npwp"></div>
+                <div class="form-group"><label>Email</label><input type="email" id="email"></div>
+                <div class="form-group"><label>No. Telepon</label><input type="tel" id="no_telp"></div>
+            </div>
+
+            <div class="form-footer">
+                <button type="button" class="btn-cancel" onclick="toggleForm()">Batal</button>
+                <button type="submit" class="btn-save">Simpan Data Pegawai</button>
+            </div>
+        </form>
     </div>
 
-    <script src="app.js"></script>
+    <div class="table-card">
+        <div class="search-area">
+            <input type="text" id="cari" placeholder="Cari Nama / NIK..." oninput="cariData()">
+            <button onclick="eksporExcel()" style="background:#16a34a; color:white; border:none; padding:10px; border-radius:6px; cursor:pointer;">Excel</button>
+            <button onclick="eksporPDF()" style="background:#dc2626; color:white; border:none; padding:10px; border-radius:6px; cursor:pointer;">PDF</button>
+        </div>
+        <div style="overflow-x: auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>NIK</th>
+                        <th>NAMA</th>
+                        <th>STATUS</th>
+                        <th>JABATAN</th>
+                        <th>RUANGAN</th>
+                        <th>AKSI</th>
+                    </tr>
+                </thead>
+                <tbody id="tabel-body"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div id="detail-modal" onclick="tutupModal()">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <h2 style="margin-top:0; border-bottom: 2px solid #eee; padding-bottom: 10px;">Detail Pegawai</h2>
+        <div class="detail-grid" id="detail-list"></div>
+        <button onclick="tutupModal()" style="margin-top:20px; width:100%; padding:10px; background:#1e293b; color:white; border:none; border-radius:6px; cursor:pointer;">Tutup</button>
+    </div>
+</div>
+
+<script>
+    const fields = ['id_pegawai','nik','nama','nip','status','gol','tmt_pangkat','tmt_berikutnya','jabatan','jenis_kelamin','agama','rentang_bup','tmt_pensiun','tmt_cpns','masuk_rs','masa_kerja_rs','tempat_lahir','tanggal_lahir','status_keluarga','alamat','jenjang','fakultas','jurusan','ruangan','no_bpjsn','no_bpjsket_taspen','npwp','email','no_telp'];
+    
+    let db = JSON.parse(localStorage.getItem('pegawai_db')) || [];
+    let isEdit = false;
+
+    // UI Logic
+    function toggleForm() {
+        const f = document.getElementById('form-container');
+        f.classList.toggle('active');
+        if(!f.classList.contains('active')) resetForm();
+    }
+
+    document.getElementById('btn-toggle-form').onclick = toggleForm;
+
+    function switchTab(e, tabId) {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        e.currentTarget.classList.add('active');
+        document.getElementById(tabId).classList.add('active');
+    }
+
+    // CRUD Logic
+    document.getElementById('pegawai-form').onsubmit = (e) => {
+        e.preventDefault();
+        const p = {};
+        fields.forEach(f => p[f] = document.getElementById(f).value);
+
+        if(isEdit) {
+            const i = db.findIndex(x => x.id_pegawai === p.id_pegawai);
+            db[i] = p;
+        } else {
+            p.id_pegawai = 'PEG' + Date.now();
+            db.push(p);
+        }
+
+        save();
+        render();
+        toggleForm();
+    };
+
+    function render(data = db) {
+        const b = document.getElementById('tabel-body');
+        b.innerHTML = '';
+        data.forEach(p => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${p.nik}</td>
+                <td style="font-weight:bold">${p.nama}</td>
+                <td>${p.status}</td>
+                <td>${p.jabatan}</td>
+                <td>${p.ruangan}</td>
+                <td>
+                    <button class="btn-action" style="background:#2563eb" onclick="lihat('${p.id_pegawai}')">Detail</button>
+                    <button class="btn-action" style="background:#f59e0b" onclick="edit('${p.id_pegawai}')">Edit</button>
+                    <button class="btn-action" style="background:#ef4444" onclick="hapus('${p.id_pegawai}')">Hapus</button>
+                </td>
+            `;
+            b.appendChild(tr);
+        });
+    }
+
+    function lihat(id) {
+        const p = db.find(x => x.id_pegawai === id);
+        const l = document.getElementById('detail-list');
+        l.innerHTML = '';
+        fields.forEach(f => {
+            l.innerHTML += `<div class="detail-item"><div class="detail-label">${f.replace(/_/g,' ')}</div><div>${p[f] || '-'}</div></div>`;
+        });
+        document.getElementById('detail-modal').classList.add('active');
+    }
+
+    function tutupModal() { document.getElementById('detail-modal').classList.remove('active'); }
+
+    function edit(id) {
+        const p = db.find(x => x.id_pegawai === id);
+        fields.forEach(f => document.getElementById(f).value = p[f]);
+        isEdit = true;
+        document.getElementById('form-container').classList.add('active');
+        window.scrollTo(0,0);
+    }
+
+    function hapus(id) {
+        if(confirm('Hapus data ini?')) {
+            db = db.filter(x => x.id_pegawai !== id);
+            save();
+            render();
+        }
+    }
+
+    function cariData() {
+        const k = document.getElementById('cari').value.toLowerCase();
+        const f = db.filter(p => p.nama.toLowerCase().includes(k) || p.nik.includes(k));
+        render(f);
+    }
+
+    function save() { localStorage.setItem('pegawai_db', JSON.stringify(db)); }
+    function resetForm() { document.getElementById('pegawai-form').reset(); isEdit = false; }
+
+    // Hitung Masa Kerja
+    document.getElementById('masuk_rs').onchange = function() {
+        const d = new Date(this.value);
+        const n = new Date();
+        let y = n.getFullYear() - d.getFullYear();
+        let m = n.getMonth() - d.getMonth();
+        if(m < 0) { y--; m += 12; }
+        document.getElementById('masa_kerja_rs').value = `${y} Tahun ${m} Bulan`;
+    };
+
+    // Ekspor
+    function eksporExcel() {
+        const ws = XLSX.utils.json_to_sheet(db);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Pegawai");
+        XLSX.writeFile(wb, "DataPegawai.xlsx");
+    }
+
+    function eksporPDF() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('l');
+        doc.text("Laporan Data Pegawai", 14, 15);
+        const rows = db.map(p => [p.nik, p.nama, p.status, p.jabatan, p.ruangan]);
+        doc.autoTable({ head: [['NIK','NAMA','STATUS','JABATAN','RUANGAN']], body: rows, startY: 20 });
+        doc.save("LaporanPegawai.pdf");
+    }
+
+    render();
+</script>
+
 </body>
 </html>
