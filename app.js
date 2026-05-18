@@ -1,4 +1,4 @@
-// 29 Parameter Inti Komplit Kepegawaian
+// Master Array Fields (29 Parameter)
 const fields = [
     'id_pegawai', 'nik', 'nama', 'nip', 'status', 'gol', 'tmt_pangkat', 'tmt_berikutnya',
     'jabatan', 'jenis_kelamin', 'agama', 'rentang_bup', 'tmt_pensiun', 'tmt_cpns',
@@ -24,7 +24,7 @@ const inputMasukRS = document.getElementById('masuk_rs');
 const btnExcel = document.getElementById('btn-excel');
 const btnPdf = document.getElementById('btn-pdf');
 
-// Inisialisasi Event Listener saat halaman dimuat
+// Fungsi utama berjalan saat dokumen siap
 document.addEventListener('DOMContentLoaded', () => {
     renderTabel();
     initTabs();
@@ -36,11 +36,10 @@ document.addEventListener('DOMContentLoaded', () => {
     inputMasukRS.onchange = hitungMasaKerjaOtomatis;
     btnExcel.onclick = unduhExcel;
     btnPdf.onclick = unduhPDF;
-
     mainForm.onsubmit = simpanFormPegawai;
 });
 
-// Toggle Tampilan Form
+// Buka/Tutup Form Input Utama
 function toggleFormAksi() {
     wrapperForm.classList.toggle('hide-element');
     if (wrapperForm.classList.contains('hide-element')) {
@@ -52,11 +51,11 @@ function toggleFormAksi() {
     }
 }
 
-// Logika Perpindahan Tab Form Elemen
+// Logika Pengendali Tab
 function initTabs() {
     const tabButtons = document.querySelectorAll('.tab-btn');
     tabButtons.forEach(button => {
-        button.onclick = function(e) {
+        button.onclick = function() {
             tabButtons.forEach(b => b.classList.remove('active'));
             document.querySelectorAll('.form-container-box').forEach(c => c.classList.remove('active'));
             
@@ -67,7 +66,7 @@ function initTabs() {
     });
 }
 
-// Aksi submit Form (Create & Update)
+// Simpan Data (Tambah Baru / Edit)
 function simpanFormPegawai(e) {
     e.preventDefault();
     const data = {};
@@ -80,18 +79,17 @@ function simpanFormPegawai(e) {
     } else {
         data.id_pegawai = 'ID-' + Date.now();
         dbPegawai.push(data);
-        alert('Data pegawai baru berhasil ditambahkan!');
+        alert('Data pegawai baru berhasil disimpan!');
     }
 
-    simpanDatabase();
+    localStorage.setItem('pegawai_storage_db', JSON.stringify(dbPegawai));
     renderTabel();
     toggleFormAksi();
 }
 
-// Render Database ke Baris Tabel HTML
+// Tampilkan Data ke Tabel Ringkas
 function renderTabel(dataData = dbPegawai) {
     tBody.innerHTML = '';
-    
     if (dataData.length === 0) {
         tBody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:#94a3b8; padding:30px;">Tidak ada database pegawai terdaftar.</td></tr>`;
         return;
@@ -105,7 +103,7 @@ function renderTabel(dataData = dbPegawai) {
             <td><span style="background:#f1f5f9; padding:3px 8px; border-radius:4px; font-weight:600; font-size:12px;">${p.status || '-'}</span></td>
             <td>${p.jabatan || '-'}</td>
             <td>${p.masuk_rs || '-'}</td>
-            <td style="font-size:13px; color:#475569;">${p.jenjang || ''} - ${p.jurusan || ''}</td>
+            <td>${p.jenjang || ''} - ${p.jurusan || ''}</td>
             <td>${p.ruangan || '-'}</td>
             <td style="text-align: center; white-space:nowrap;">
                 <button type="button" class="btn-row" style="background:#2563eb;" onclick="tampilkanDetailPanel('${p.id_pegawai}')">👁️ Detail</button>
@@ -117,7 +115,7 @@ function renderTabel(dataData = dbPegawai) {
     });
 }
 
-// Fungsi Menampilkan Detail secara inline di bawah
+// Buka Panel Rincian Data Lengkap di Bawah
 function tampilkanDetailPanel(id) {
     const dataPeg = dbPegawai.find(x => x.id_pegawai === id);
     if (!dataPeg) return;
@@ -140,7 +138,7 @@ function tutupPanelDetail() {
     panelDetail.classList.remove('active');
 }
 
-// Ambil Data ke Form untuk Edit
+// Set Form ke Mode Edit
 function pemicuEditPegawai(id) {
     const dataPeg = dbPegawai.find(x => x.id_pegawai === id);
     if (!dataPeg) return;
@@ -155,17 +153,17 @@ function pemicuEditPegawai(id) {
     window.scrollTo({ top: wrapperForm.offsetTop - 20, behavior: 'smooth' });
 }
 
-// Hapus Permanen Data
+// Hapus Data
 function eksekusiHapusPegawai(id) {
-    if (confirm('Apakah Anda yakin ingin menghapus data pegawai ini secara permanen?')) {
+    if (confirm('Apakah Anda yakin ingin menghapus data pegawai ini?')) {
         dbPegawai = dbPegawai.filter(x => x.id_pegawai !== id);
-        simpanDatabase();
+        localStorage.setItem('pegawai_storage_db', JSON.stringify(dbPegawai));
         renderTabel();
         tutupPanelDetail();
     }
 }
 
-// Sistem Filter Pencarian Real-time
+// Pencarian Instan
 function jalankanPencarian() {
     const kataKunci = inputCari.value.toLowerCase();
     const hasilFilter = dbPegawai.filter(p => 
@@ -175,7 +173,7 @@ function jalankanPencarian() {
     renderTabel(hasilFilter);
 }
 
-// Auto Kalkulasi Masa Kerja Instansi
+// Hitung Masa Kerja Otomatis
 function hitungMasaKerjaOtomatis() {
     if (!this.value) return;
     const masuk = new Date(this.value);
@@ -186,34 +184,27 @@ function hitungMasaKerjaOtomatis() {
     document.getElementById('masa_kerja_rs').value = `${tahun} Tahun ${bulan} Bulan`;
 }
 
-// Helper Utilitas Storage
-function simpanDatabase() { 
-    localStorage.setItem('pegawai_storage_db', JSON.stringify(dbPegawai)); 
-}
-
-
+// Reset Tampilan Form
 function resetStrukturForm() {
     mainForm.reset();
     document.getElementById('id_pegawai').value = '';
     statusEdit = false;
-    
-    // Kembalikan aktif ke tab pertama
     document.querySelectorAll('.tab-btn').forEach((b, i) => i === 0 ? b.classList.add('active') : b.classList.remove('active'));
     document.querySelectorAll('.form-container-box').forEach((c, i) => i === 0 ? c.classList.add('active') : c.classList.remove('active'));
 }
 
-// FITUR UNDUH EXCEL (.XLSX)
+// Download Excel
 function unduhExcel() {
-    if (dbPegawai.length === 0) return alert('Data kosong, tidak bisa ekspor Excel.');
+    if (dbPegawai.length === 0) return alert('Data kosong.');
     const ws = XLSX.utils.json_to_sheet(dbPegawai);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Database Pegawai");
     XLSX.writeFile(wb, "Data_Pegawai_Lengkap.xlsx");
 }
 
-// FITUR UNDUH PDF (.PDF)
+// Download PDF
 function unduhPDF() {
-    if (dbPegawai.length === 0) return alert('Data kosong, tidak bisa cetak PDF.');
+    if (dbPegawai.length === 0) return alert('Data kosong.');
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF('l', 'pt', 'a4');
     doc.setFontSize(16);
