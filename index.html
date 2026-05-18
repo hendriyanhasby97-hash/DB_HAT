@@ -3,169 +3,156 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aplikasi Pendataan Pegawai CRUD</title>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <!-- Library Ekspor Data -->
+    <title>Sistem Pendataan Pegawai</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
+    
     <style>
-        .form-group { @apply flex flex-col; }
-        label { @apply text-xs font-semibold text-gray-600 mb-1 uppercase tracking-wider; }
-        input, select { @apply border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-gray-50; }
-        .tab-btn { @apply px-4 py-2 text-sm font-medium text-gray-600 border-b-2 border-transparent hover:text-blue-600 hover:border-blue-500 transition-all cursor-pointer; }
-        .tab-btn.active { @apply text-blue-600 border-blue-600 font-bold; }
-        .tab-content { @apply hidden grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 animate-fadeIn; }
-        .tab-content.active { @apply grid; }
+        /* CSS Tambahan untuk memastikan Tab berfungsi meskipun Tailwind gagal load */
+        .tab-content { display: none; }
+        .tab-content.active { display: grid; }
+        .hidden { display: none !important; }
+        
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .animate-fadeIn { animation: fadeIn 0.3s ease-in-out; }
+        
+        .tab-btn.active {
+            border-bottom: 3px solid #2563eb;
+            color: #2563eb;
+            font-weight: bold;
+        }
+        /* Memastikan tabel tidak tumpang tindih */
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #e2e8f0; padding: 8px; }
     </style>
 </head>
-<body class="bg-slate-100 font-sans min-h-screen text-slate-800">
+<body class="bg-slate-50 text-slate-900">
 
-    <div class="container mx-auto p-4 md:p-6">
-        <header class="mb-6 bg-white p-6 rounded-xl shadow-xs border border-gray-200 flex flex-col md:flex-row justify-between items-center gap-4">
+    <div class="max-w-7xl mx-auto p-4 md:p-8">
+        <header class="flex flex-col md:flex-row justify-between items-center mb-8 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
             <div>
-                <h1 class="text-2xl md:text-3xl font-bold text-slate-800">Sistem Informasi Pendataan Pegawai</h1>
-                <p class="text-gray-500 text-sm mt-1">Manajemen Administrasi Kepegawaian Rumah Sakit / Instansi</p>
+                <h1 class="text-2xl font-bold">Data Pegawai RS</h1>
+                <p class="text-slate-500 text-sm">Kelola informasi SDM dengan mudah</p>
             </div>
-            <button id="btn-toggle-form" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg text-sm font-semibold shadow-xs cursor-pointer flex items-center gap-2 transition-all">
-                <span>➕</span> Tambah Pegawai Baru
+            <button id="btn-toggle-form" class="mt-4 md:mt-0 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl font-semibold transition-all">
+                + Tambah Pegawai
             </button>
         </header>
 
-        <!-- AREA FORM INPUT (SEMBUNYI SECARA DEFAULT) -->
-        <div id="form-container" class="hidden bg-white p-6 rounded-xl shadow-xs border border-gray-200 mb-8 transition-all">
-            <h2 id="form-title" class="text-lg font-bold mb-4 text-slate-800 border-b pb-2 flex justify-between items-center">
-                <span>Form Data Pegawai</span>
-                <span id="txt-mode" class="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded font-normal">Mode: Tambah Baru</span>
-            </h2>
-            
-            <!-- Tab Headers -->
-            <div class="flex border-b border-gray-200 overflow-x-auto whitespace-nowrap mb-4">
-                <button type="button" class="tab-btn active" data-tab="tab-pribadi">👤 Data Pribadi</button>
-                <button type="button" class="tab-btn" data-tab="tab-pekerjaan">💼 Data Pekerjaan</button>
-                <button type="button" class="tab-btn" data-tab="tab-pendidikan">🎓 Data Pendidikan</button>
-                <button type="button" class="tab-btn" data-tab="tab-keluarga-kontak">🏠 Keluarga & Kontak</button>
+        <div id="form-container" class="hidden bg-white rounded-2xl shadow-lg border border-slate-200 mb-8 overflow-hidden animate-fadeIn">
+            <div class="bg-slate-50 p-4 border-b border-slate-200 flex justify-between items-center">
+                <h2 id="form-title" class="font-bold text-lg text-slate-700">Form Input Pegawai</h2>
+                <span id="mode-badge" class="bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded">Mode: Tambah Baru</span>
             </div>
 
-            <form id="pegawai-form">
+            <div class="flex border-b border-slate-200 px-6 bg-white overflow-x-auto">
+                <button class="tab-btn active py-4 px-6 text-sm whitespace-nowrap" data-tab="pribadi">Data Pribadi</button>
+                <button class="tab-btn py-4 px-6 text-sm whitespace-nowrap" data-tab="pekerjaan">Data Pekerjaan</button>
+                <button class="tab-btn py-4 px-6 text-sm whitespace-nowrap" data-tab="pendidikan">Data Pendidikan</button>
+                <button class="tab-btn py-4 px-6 text-sm whitespace-nowrap" data-tab="keluarga">Keluarga & Kontak</button>
+            </div>
+
+            <form id="pegawai-form" class="p-8">
                 <input type="hidden" id="id_pegawai">
 
-                <!-- TAB 1: DATA PRIBADI -->
-                <div id="tab-pribadi" class="tab-content active">
-                    <div class="form-group"><label>NIK</label><input type="number" id="nik" required></div>
-                    <div class="form-group"><label>Nama Lengkap</label><input type="text" id="nama" required></div>
-                    <div class="form-group">
-                        <label>Jenis Kelamin</label>
-                        <select id="jenis_kelamin"><option value="Laki-laki">Laki-laki</option><option value="Perempuan">Perempuan</option></select>
+                <div id="pribadi" class="tab-content active grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div><label class="block text-xs font-bold mb-1 uppercase text-slate-500">NIK</label><input type="number" id="nik" class="w-full border rounded-lg p-2 bg-slate-50" required></div>
+                    <div><label class="block text-xs font-bold mb-1 uppercase text-slate-500">Nama</label><input type="text" id="nama" class="w-full border rounded-lg p-2 bg-slate-50" required></div>
+                    <div><label class="block text-xs font-bold mb-1 uppercase text-slate-500">Jenis Kelamin</label>
+                        <select id="jenis_kelamin" class="w-full border rounded-lg p-2 bg-slate-50"><option>Laki-laki</option><option>Perempuan</option></select>
                     </div>
-                    <div class="form-group">
-                        <label>Agama</label>
-                        <select id="agama">
-                            <option value="Islam">Islam</option><option value="Kristen">Kristen</option><option value="Katolik">Katolik</option>
-                            <option value="Hindu">Hindu</option><option value="Buddha">Buddha</option><option value="Khonghucu">Khonghucu</option>
-                        </select>
+                    <div><label class="block text-xs font-bold mb-1 uppercase text-slate-500">Agama</label>
+                        <select id="agama" class="w-full border rounded-lg p-2 bg-slate-50"><option>Islam</option><option>Kristen</option><option>Katolik</option><option>Hindu</option><option>Buddha</option></select>
                     </div>
-                    <div class="form-group"><label>Tempat Lahir</label><input type="text" id="tempat_lahir"></div>
-                    <div class="form-group"><label>Tanggal Lahir</label><input type="date" id="tanggal_lahir"></div>
+                    <div><label class="block text-xs font-bold mb-1 uppercase text-slate-500">Tempat Lahir</label><input type="text" id="tempat_lahir" class="w-full border rounded-lg p-2 bg-slate-50"></div>
+                    <div><label class="block text-xs font-bold mb-1 uppercase text-slate-500">Tanggal Lahir</label><input type="date" id="tanggal_lahir" class="w-full border rounded-lg p-2 bg-slate-50"></div>
                 </div>
 
-                <!-- TAB 2: DATA PEKERJAAN -->
-                <div id="tab-pekerjaan" class="tab-content">
-                    <div class="form-group"><label>NIP</label><input type="number" id="nip"></div>
-                    <div class="form-group">
-                        <label>Status Kepegawaian</label>
-                        <select id="status"><option value="PNS">PNS</option><option value="PPPK">PPPK</option><option value="Kontrak">Kontrak</option><option value="Tetap RS">Tetap RS</option></select>
+                <div id="pekerjaan" class="tab-content grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div><label class="block text-xs font-bold mb-1 uppercase text-slate-500">NIP</label><input type="number" id="nip" class="w-full border rounded-lg p-2 bg-slate-50"></div>
+                    <div><label class="block text-xs font-bold mb-1 uppercase text-slate-500">Status</label>
+                        <select id="status" class="w-full border rounded-lg p-2 bg-slate-50"><option>PNS</option><option>PPPK</option><option>Kontrak</option><option>Tetap RS</option></select>
                     </div>
-                    <div class="form-group"><label>Jabatan</label><input type="text" id="jabatan" required></div>
-                    <div class="form-group"><label>Ruangan / Unit Kerja</label><input type="text" id="ruangan"></div>
-                    <div class="form-group"><label>Golongan</label><input type="text" id="gol" placeholder="Contoh: IV/a"></div>
-                    <div class="form-group"><label>TMT Pangkat</label><input type="date" id="tmt_pangkat"></div>
-                    <div class="form-group"><label>TMT Berikutnya</label><input type="date" id="tmt_berikutnya"></div>
-                    <div class="form-group"><label>Rentang BUP (Usia Pensiun)</label><input type="number" id="rentang_bup" placeholder="58 atau 60"></div>
-                    <div class="form-group"><label>TMT Pensiun</label><input type="date" id="tmt_pensiun"></div>
-                    <div class="form-group"><label>TMT CPNS</label><input type="date" id="tmt_cpns"></div>
-                    <div class="form-group"><label>Tanggal Masuk RS</label><input type="date" id="masuk_rs"></div>
-                    <div class="form-group"><label>Masa Kerja RS</label><input type="text" id="masa_kerja_rs" readonly class="bg-gray-100 font-medium text-blue-700"></div>
+                    <div><label class="block text-xs font-bold mb-1 uppercase text-slate-500">Jabatan</label><input type="text" id="jabatan" class="w-full border rounded-lg p-2 bg-slate-50"></div>
+                    <div><label class="block text-xs font-bold mb-1 uppercase text-slate-500">Ruangan</label><input type="text" id="ruangan" class="w-full border rounded-lg p-2 bg-slate-50"></div>
+                    <div><label class="block text-xs font-bold mb-1 uppercase text-slate-500">Golongan</label><input type="text" id="gol" class="w-full border rounded-lg p-2 bg-slate-50"></div>
+                    <div><label class="block text-xs font-bold mb-1 uppercase text-slate-500">TMT Pangkat</label><input type="date" id="tmt_pangkat" class="w-full border rounded-lg p-2 bg-slate-50"></div>
+                    <div><label class="block text-xs font-bold mb-1 uppercase text-slate-500">TMT Berikutnya</label><input type="date" id="tmt_berikutnya" class="w-full border rounded-lg p-2 bg-slate-50"></div>
+                    <div><label class="block text-xs font-bold mb-1 uppercase text-slate-500">Rentang BUP</label><input type="number" id="rentang_bup" class="w-full border rounded-lg p-2 bg-slate-50"></div>
+                    <div><label class="block text-xs font-bold mb-1 uppercase text-slate-500">TMT Pensiun</label><input type="date" id="tmt_pensiun" class="w-full border rounded-lg p-2 bg-slate-50"></div>
+                    <div><label class="block text-xs font-bold mb-1 uppercase text-slate-500">TMT CPNS</label><input type="date" id="tmt_cpns" class="w-full border rounded-lg p-2 bg-slate-50"></div>
+                    <div><label class="block text-xs font-bold mb-1 uppercase text-slate-500">Masuk RS</label><input type="date" id="masuk_rs" class="w-full border rounded-lg p-2 bg-slate-50"></div>
+                    <div><label class="block text-xs font-bold mb-1 uppercase text-slate-500">Masa Kerja RS</label><input type="text" id="masa_kerja_rs" class="w-full border rounded-lg p-2 bg-slate-200" readonly></div>
                 </div>
 
-                <!-- TAB 3: DATA PENDIDIKAN -->
-                <div id="tab-pendidikan" class="tab-content">
-                    <div class="form-group">
-                        <label>Jenjang Pendidikan</label>
-                        <select id="jenjang"><option value="D3">D3</option><option value="D4">D4</option><option value="S1">S1</option><option value="S2">S2</option><option value="Profesi">Profesi / Spesialis</option></select>
+                <div id="pendidikan" class="tab-content grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div><label class="block text-xs font-bold mb-1 uppercase text-slate-500">Jenjang</label>
+                        <select id="jenjang" class="w-full border rounded-lg p-2 bg-slate-50"><option>D3</option><option>D4</option><option>S1</option><option>S2</option><option>Profesi</option></select>
                     </div>
-                    <div class="form-group"><label>Fakultas</label><input type="text" id="fakultas"></div>
-                    <div class="form-group"><label>Jurusan</label><input type="text" id="jurusan"></div>
+                    <div><label class="block text-xs font-bold mb-1 uppercase text-slate-500">Fakultas</label><input type="text" id="fakultas" class="w-full border rounded-lg p-2 bg-slate-50"></div>
+                    <div><label class="block text-xs font-bold mb-1 uppercase text-slate-500">Jurusan</label><input type="text" id="jurusan" class="w-full border rounded-lg p-2 bg-slate-50"></div>
                 </div>
 
-                <!-- TAB 4: KELUARGA & KONTAK -->
-                <div id="tab-keluarga-kontak" class="tab-content">
-                    <div class="form-group">
-                        <label>Status Keluarga</label>
-                        <select id="status_keluarga"><option value="TK">TK (Tidak Kawin)</option><option value="K/0">K/0</option><option value="K/1">K/1</option><option value="K/2">K/2</option><option value="K/3">K/3</option></select>
+                <div id="keluarga" class="tab-content grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div><label class="block text-xs font-bold mb-1 uppercase text-slate-500">Status Keluarga</label>
+                        <select id="status_keluarga" class="w-full border rounded-lg p-2 bg-slate-50"><option>TK</option><option>K/0</option><option>K/1</option><option>K/2</option><option>K/3</option></select>
                     </div>
-                    <div class="form-group"><label>Alamat Rumah</label><input type="text" id="alamat"></div>
-                    <div class="form-group"><label>No. BPJS Kesehatan</label><input type="number" id="no_bpjsn"></div>
-                    <div class="form-group"><label>No. BPJS Ketenagakerjaan / Taspen</label><input type="text" id="no_bpjsket_taspen"></div>
-                    <div class="form-group"><label>NPWP</label><input type="text" id="npwp"></div>
-                    <div class="form-group"><label>Email</label><input type="email" id="email"></div>
-                    <div class="form-group"><label>No. Telepon / WA</label><input type="tel" id="no_telp"></div>
+                    <div><label class="block text-xs font-bold mb-1 uppercase text-slate-500">Alamat</label><input type="text" id="alamat" class="w-full border rounded-lg p-2 bg-slate-50"></div>
+                    <div><label class="block text-xs font-bold mb-1 uppercase text-slate-500">BPJS Kes</label><input type="number" id="no_bpjsn" class="w-full border rounded-lg p-2 bg-slate-50"></div>
+                    <div><label class="block text-xs font-bold mb-1 uppercase text-slate-500">BPJS Ket / Taspen</label><input type="text" id="no_bpjsket_taspen" class="w-full border rounded-lg p-2 bg-slate-50"></div>
+                    <div><label class="block text-xs font-bold mb-1 uppercase text-slate-500">NPWP</label><input type="text" id="npwp" class="w-full border rounded-lg p-2 bg-slate-50"></div>
+                    <div><label class="block text-xs font-bold mb-1 uppercase text-slate-500">Email</label><input type="email" id="email" class="w-full border rounded-lg p-2 bg-slate-50"></div>
+                    <div><label class="block text-xs font-bold mb-1 uppercase text-slate-500">Telepon</label><input type="tel" id="no_telp" class="w-full border rounded-lg p-2 bg-slate-50"></div>
                 </div>
 
-                <div class="flex justify-end gap-2 mt-6 border-t pt-4">
-                    <button type="button" id="btn-batal" class="bg-gray-500 hover:bg-gray-600 text-white px-5 py-2 rounded-lg text-sm font-semibold cursor-pointer">Batal / Tutup</button>
-                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg text-sm font-semibold cursor-pointer">Simpan Data</button>
+                <div class="mt-8 pt-6 border-t border-slate-200 flex justify-end gap-3">
+                    <button type="button" id="btn-batal" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-6 py-2 rounded-xl transition-all">Tutup</button>
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-2 rounded-xl font-bold transition-all">Simpan Data</button>
                 </div>
             </form>
         </div>
 
-        <!-- DAFTAR PEGAWAI TABLE -->
-        <div class="bg-white p-6 rounded-xl shadow-xs border border-gray-200">
-            <div class="flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4 mb-6">
-                <h2 class="text-xl font-bold text-slate-800">Daftar Ringkasan Pegawai</h2>
-                
-                <div class="flex flex-wrap items-center gap-2">
-                    <input type="text" id="cari-pegawai" placeholder="Cari nama atau NIK..." class="border border-gray-300 rounded-lg px-4 py-2 text-sm w-full md:w-64 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <button onclick="eksporExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-lg text-xs font-semibold cursor-pointer flex items-center gap-1">📥 Excel</button>
-                    <button onclick="eksporPDF()" class="bg-rose-600 hover:bg-rose-700 text-white px-3 py-2 rounded-lg text-xs font-semibold cursor-pointer flex items-center gap-1">📥 PDF</button>
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
+                <h3 class="font-bold text-lg">Daftar Pegawai</h3>
+                <div class="flex gap-2 w-full md:w-auto">
+                    <input type="text" id="cari-pegawai" placeholder="Cari NIK/Nama..." class="border rounded-lg px-4 py-2 text-sm w-full md:w-64">
+                    <button onclick="eksporExcel()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm">Excel</button>
+                    <button onclick="eksporPDF()" class="bg-rose-600 text-white px-4 py-2 rounded-lg text-sm">PDF</button>
                 </div>
             </div>
-            
-            <div class="overflow-x-auto rounded-lg border border-gray-200">
-                <table class="w-full text-left border-collapse text-sm">
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm">
                     <thead>
-                        <tr class="bg-slate-800 text-white text-xs uppercase tracking-wider">
-                            <th class="p-3 border border-slate-700">NIK</th>
-                            <th class="p-3 border border-slate-700">Nama</th>
-                            <th class="p-3 border border-slate-700">Status</th>
-                            <th class="p-3 border border-slate-700">Jabatan</th>
-                            <th class="p-3 border border-slate-700">Masuk RS</th>
-                            <th class="p-3 border border-slate-700">Pendidikan</th>
-                            <th class="p-3 border border-slate-700">Ruangan</th>
-                            <th class="p-3 border border-slate-700 text-center">Aksi</th>
+                        <tr class="bg-slate-800 text-white">
+                            <th class="p-4">NIK</th>
+                            <th class="p-4">Nama</th>
+                            <th class="p-4">Jabatan</th>
+                            <th class="p-4">Masuk RS</th>
+                            <th class="p-4">Ruangan</th>
+                            <th class="p-4 text-center">Aksi</th>
                         </tr>
                     </thead>
-                    <tbody id="tabel-pegawai-body" class="text-gray-700 divide-y divide-gray-200">
-                        <!-- Data otomatis dirender JavaScript -->
-                    </tbody>
+                    <tbody id="tabel-pegawai-body" class="divide-y">
+                        </tbody>
                 </table>
             </div>
         </div>
     </div>
 
-    <!-- MODAL DETAIL VIEW -->
-    <div id="detail-modal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-xs flex justify-center items-center p-4 z-50">
-        <div class="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6 shadow-2xl animate-scaleUp">
-            <div class="flex justify-between items-center border-b pb-3 mb-4">
-                <h3 class="text-xl font-bold text-slate-800">Detail Lengkap Data Pegawai</h3>
-                <button onclick="tutupModal()" class="text-gray-400 hover:text-gray-600 text-2xl cursor-pointer">&times;</button>
+    <div id="detail-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl w-full max-w-4xl p-8 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-6 border-b pb-4">
+                <h2 class="text-2xl font-bold text-slate-800">Detail Lengkap Pegawai</h2>
+                <button onclick="tutupModal()" class="text-slate-400 hover:text-slate-600 text-3xl">&times;</button>
             </div>
-            <div id="detail-modal-content" class="grid grid-cols-1 md:grid-cols-2 gap-y-2 gap-x-6 text-sm">
-                <!-- Data lengkap dirender dinamis -->
-            </div>
-            <div class="flex justify-end mt-6 border-t pt-4">
-                <button onclick="tutupModal()" class="bg-slate-700 hover:bg-slate-800 text-white px-5 py-2 rounded-lg text-sm font-semibold cursor-pointer">Tutup Detail</button>
+            <div id="detail-content" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                </div>
+            <div class="mt-8 pt-6 border-t flex justify-end">
+                <button onclick="tutupModal()" class="bg-slate-800 text-white px-8 py-2 rounded-xl font-bold">Selesai</button>
             </div>
         </div>
     </div>
