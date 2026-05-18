@@ -1,4 +1,4 @@
-// Master Array Fields (29 Parameter)
+// Master Array Fields (29 Parameter Data Komplit)
 const fields = [
     'id_pegawai', 'nik', 'nama', 'nip', 'status', 'gol', 'tmt_pangkat', 'tmt_berikutnya',
     'jabatan', 'jenis_kelamin', 'agama', 'rentang_bup', 'tmt_pensiun', 'tmt_cpns',
@@ -24,10 +24,9 @@ const inputMasukRS = document.getElementById('masuk_rs');
 const btnExcel = document.getElementById('btn-excel');
 const btnPdf = document.getElementById('btn-pdf');
 
-// Fungsi utama berjalan saat dokumen siap
+// Jalankan Event Listener saat DOM siap
 document.addEventListener('DOMContentLoaded', () => {
     renderTabel();
-    initTabs();
 
     btnToggle.onclick = toggleFormAksi;
     btnTutupForm.onclick = toggleFormAksi;
@@ -39,7 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
     mainForm.onsubmit = simpanFormPegawai;
 });
 
-// Buka/Tutup Form Input Utama
+// Fungsi Buka/Tutup Form Input Utama
 function toggleFormAksi() {
     wrapperForm.classList.toggle('hide-element');
     if (wrapperForm.classList.contains('hide-element')) {
@@ -51,22 +50,7 @@ function toggleFormAksi() {
     }
 }
 
-// Logika Pengendali Tab
-function initTabs() {
-    const tabButtons = document.querySelectorAll('.tab-btn');
-    tabButtons.forEach(button => {
-        button.onclick = function() {
-            tabButtons.forEach(b => b.classList.remove('active'));
-            document.querySelectorAll('.form-container-box').forEach(c => c.classList.remove('active'));
-            
-            this.classList.add('active');
-            const targetBox = this.getAttribute('data-target');
-            document.getElementById(targetBox).classList.add('active');
-        };
-    });
-}
-
-// Simpan Data (Tambah Baru / Edit)
+// Aksi Submit Form (Create & Update)
 function simpanFormPegawai(e) {
     e.preventDefault();
     const data = {};
@@ -87,7 +71,7 @@ function simpanFormPegawai(e) {
     toggleFormAksi();
 }
 
-// Tampilkan Data ke Tabel Ringkas
+// Render Data ke Baris Tabel HTML Ringkas
 function renderTabel(dataData = dbPegawai) {
     tBody.innerHTML = '';
     if (dataData.length === 0) {
@@ -115,7 +99,7 @@ function renderTabel(dataData = dbPegawai) {
     });
 }
 
-// Buka Panel Rincian Data Lengkap di Bawah
+// Tampilkan Panel Rincian 29 Parameter Lengkap di bawah tabel
 function tampilkanDetailPanel(id) {
     const dataPeg = dbPegawai.find(x => x.id_pegawai === id);
     if (!dataPeg) return;
@@ -138,7 +122,7 @@ function tutupPanelDetail() {
     panelDetail.classList.remove('active');
 }
 
-// Set Form ke Mode Edit
+// Isi Ulang Form untuk diedit
 function pemicuEditPegawai(id) {
     const dataPeg = dbPegawai.find(x => x.id_pegawai === id);
     if (!dataPeg) return;
@@ -153,9 +137,9 @@ function pemicuEditPegawai(id) {
     window.scrollTo({ top: wrapperForm.offsetTop - 20, behavior: 'smooth' });
 }
 
-// Hapus Data
+// Jalankan Aksi Hapus Data Pegawai
 function eksekusiHapusPegawai(id) {
-    if (confirm('Apakah Anda yakin ingin menghapus data pegawai ini?')) {
+    if (confirm('Apakah Anda yakin ingin menghapus data pegawai ini secara permanen?')) {
         dbPegawai = dbPegawai.filter(x => x.id_pegawai !== id);
         localStorage.setItem('pegawai_storage_db', JSON.stringify(dbPegawai));
         renderTabel();
@@ -163,7 +147,7 @@ function eksekusiHapusPegawai(id) {
     }
 }
 
-// Pencarian Instan
+// Penyaringan Pencarian Instan
 function jalankanPencarian() {
     const kataKunci = inputCari.value.toLowerCase();
     const hasilFilter = dbPegawai.filter(p => 
@@ -184,27 +168,25 @@ function hitungMasaKerjaOtomatis() {
     document.getElementById('masa_kerja_rs').value = `${tahun} Tahun ${bulan} Bulan`;
 }
 
-// Reset Tampilan Form
+// Reset data Form
 function resetStrukturForm() {
     mainForm.reset();
     document.getElementById('id_pegawai').value = '';
     statusEdit = false;
-    document.querySelectorAll('.tab-btn').forEach((b, i) => i === 0 ? b.classList.add('active') : b.classList.remove('active'));
-    document.querySelectorAll('.form-container-box').forEach((c, i) => i === 0 ? c.classList.add('active') : c.classList.remove('active'));
 }
 
-// Download Excel
+// Ekspor ke format Excel (.xlsx)
 function unduhExcel() {
-    if (dbPegawai.length === 0) return alert('Data kosong.');
+    if (dbPegawai.length === 0) return alert('Data masih kosong.');
     const ws = XLSX.utils.json_to_sheet(dbPegawai);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Database Pegawai");
     XLSX.writeFile(wb, "Data_Pegawai_Lengkap.xlsx");
 }
 
-// Download PDF
+// Ekspor ke format PDF (.pdf)
 function unduhPDF() {
-    if (dbPegawai.length === 0) return alert('Data kosong.');
+    if (dbPegawai.length === 0) return alert('Data masih kosong.');
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF('l', 'pt', 'a4');
     doc.setFontSize(16);
