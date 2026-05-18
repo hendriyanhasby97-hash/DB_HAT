@@ -3,82 +3,89 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistem Manajemen Pegawai - CRUD Lengkap</title>
+    <title>Sistem Manajemen Pegawai</title>
+    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
 
     <style>
-        /* CSS INTERNAL UTAMA - DIJAMIN RAPI & STRUKTUR TIDAK AKAN PECAH */
+        /* CSS INTERNAl UNTUK MENGUNCI LAYOUT AGAR TIDAK BERANTAKAN */
         :root {
             --primary: #1e40af;
             --primary-hover: #1d4ed8;
-            --bg: #f1f5f9;
+            --bg: #f8fafc;
             --text: #0f172a;
             --border: #cbd5e1;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Segoe UI', system-ui, sans-serif; background-color: var(--bg); color: var(--text); padding: 20px; line-height: 1.5; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: var(--bg); color: var(--text); padding: 20px; line-height: 1.5; }
         .container { max-width: 1300px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
         
-        /* CARD BASE STYLE */
-        .card { background: white; padding: 24px; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-        .card-title { font-size: 18px; font-weight: 700; margin-bottom: 16px; color: #1e293b; border-b: 2px solid #f1f5f9; padding-bottom: 8px; }
-
-        /* HEADER SECTION */
+        /* HEADER */
         .main-header { display: flex; justify-content: space-between; align-items: center; background: white; padding: 20px 24px; border-radius: 12px; border: 1px solid #e2e8f0; }
         .main-header h1 { font-size: 22px; font-weight: 800; color: var(--primary); }
         .main-header p { font-size: 13px; color: #64748b; }
         .btn-toggle { background: var(--primary); color: white; border: none; padding: 10px 18px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px; }
-        .btn-toggle:hover { background: var(--primary-hover); }
 
-        /* TAB SYSTEM STYLING */
-        .tabs-header { display: flex; background: #f8fafc; border: 1px solid var(--border); border-radius: 8px 8px 0 0; overflow-x: auto; }
-        .tab-btn { padding: 14px 20px; border: none; background: none; cursor: pointer; color: #64748b; font-weight: 600; font-size: 14px; border-bottom: 3px solid transparent; transition: all 0.2s; white-space: nowrap; }
+        /* KOTAK FORM UTAMA */
+        #form-master-wrapper { background: white; border-radius: 12px; border: 1px solid var(--border); overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+        
+        /* NAVIGASI TAB */
+        .tabs-header { display: flex; background: #f8fafc; border-bottom: 1px solid var(--border); overflow-x: auto; }
+        .tab-btn { padding: 14px 20px; border: none; background: none; cursor: pointer; color: #64748b; font-weight: 600; font-size: 14px; border-bottom: 3px solid transparent; white-space: nowrap; }
         .tab-btn:hover { color: var(--primary); background: #f1f5f9; }
         .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); background: white; font-weight: 700; }
 
-        /* TAB CONTENT GRID */
-        .form-container-box { background: white; border: 1px solid var(--border); border-top: none; border-radius: 0 0 8px 8px; padding: 24px; display: none; }
+        /* KONTEN TAB (DIPAKSA GRID 3 KOLOM) */
+        .form-container-box { padding: 24px; display: none; }
         .form-container-box.active { display: block; }
-        
-        .grid-inputs { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+        .grid-inputs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+
+        /* INPUT DAN LABEL */
         .form-group { display: flex; flex-direction: column; gap: 6px; }
         .form-group label { font-size: 11px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.5px; }
-        .form-group input, .form-group select { padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px; background-color: #f8fafc; color: var(--text); outline: none; }
-        .form-group input:focus, .form-group select:focus { border-color: var(--primary); background-color: white; box-shadow: 0 0 0 3px rgba(30,64,175,0.1); }
+        .form-group input, .form-group select { padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px; background-color: #f8fafc; color: var(--text); outline: none; width: 100%; }
+        .form-group input:focus, .form-group select:focus { border-color: var(--primary); background-color: white; }
         .form-group input[readonly] { background-color: #e2e8f0; color: #475569; cursor: not-allowed; }
 
-        .form-actions { margin-top: 24px; padding-top: 16px; border-top: 1px solid #e2e8f0; text-align: right; }
+        /* TOMBOL FORM */
+        .form-footer-box { padding: 20px; background: #f8fafc; text-align: right; border-top: 1px solid #e2e8f0; }
         .btn-save { background: #16a34a; color: white; border: none; padding: 10px 24px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 14px; }
-        .btn-save:hover { background: #15803d; }
         .btn-close { background: #64748b; color: white; border: none; padding: 10px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 14px; margin-right: 8px; }
 
-        /* ACTION AREA BAR */
+        /* TABEL DATA */
+        .card { background: white; padding: 24px; border-radius: 12px; border: 1px solid #e2e8f0; }
         .action-bar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
-        .search-input { padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; width: 300px; max-width: 100%; }
-        .btn-group-export { display: flex; gap: 8px; }
-        .btn-xls { background: #15803d; color: white; border: none; padding: 8px 14px; border-radius: 6px; font-weight: 600; font-size: 13px; cursor: pointer; }
-        .btn-pdf { background: #b91c1c; color: white; border: none; padding: 8px 14px; border-radius: 6px; font-weight: 600; font-size: 13px; cursor: pointer; }
-
-        /* TABLE STYLING */
+        .search-input { padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; width: 300px; }
+        .btn-xls { background: #15803d; color: white; border: none; padding: 8px 14px; border-radius: 6px; font-weight: 600; cursor: pointer; margin-right: 5px; }
+        .btn-pdf { background: #b91c1c; color: white; border: none; padding: 8px 14px; border-radius: 6px; font-weight: 600; cursor: pointer; }
+        
         .table-responsive { overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 8px; }
         table { width: 100%; border-collapse: collapse; text-align: left; background: white; font-size: 14px; }
-        th { background: #1e293b; color: white; padding: 14px; font-weight: 600; font-size: 12px; text-transform: uppercase; }
+        th { background: #1e293b; color: white; padding: 14px; font-weight: 600; font-size: 11px; text-transform: uppercase; }
         td { padding: 14px; border-bottom: 1px solid #e2e8f0; color: #334155; }
-        tr:hover { background-color: #f8fafc; }
         .btn-row { padding: 6px 12px; border: none; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer; margin-right: 4px; color: white; }
 
-        /* INLINE DETAIL PANEL */
-        #detail-panel { display: none; background: #f8fafc; border: 2px solid var(--primary); border-radius: 12px; padding: 24px; margin-top: 10px; }
+        /* PANEL DETAIL INLINE */
+        #detail-panel { display: none; background: #f8fafc; border: 2px solid var(--primary); border-radius: 12px; padding: 24px; }
         #detail-panel.active { display: block; }
-        .detail-grid-view { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; margin-top: 16px; }
+        .detail-grid-view { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 16px; }
         .detail-card-item { background: white; padding: 12px; border-radius: 6px; border: 1px solid #e2e8f0; }
-        .detail-card-label { font-size: 10px; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 2px; }
-        .detail-card-value { font-size: 14px; font-weight: 600; color: #1e293b; }
+        .detail-card-label { font-size: 10px; font-weight: 700; color: #94a3b8; text-transform: uppercase; }
+        .detail-card-value { font-size: 14px; font-weight: 600; color: #1e293b; margin-top: 2px; }
 
-        /* UTILITY */
+        /* RESPONSIVE LAYOUT UNTUK LAYAR KECIL/HP */
+        @media (max-width: 900px) {
+            .grid-inputs { grid-template-columns: repeat(2, 1fr); }
+            .detail-grid-view { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 600px) {
+            .grid-inputs { grid-template-columns: 1fr; }
+            .detail-grid-view { grid-template-columns: 1fr; }
+        }
+
         .hide-element { display: none !important; }
     </style>
 </head>
@@ -128,7 +135,7 @@
                     <div class="form-group"><label>TMT Pensiun</label><input type="date" id="tmt_pensiun"></div>
                     <div class="form-group"><label>TMT CPNS</label><input type="date" id="tmt_cpns"></div>
                     <div class="form-group"><label>Masuk RS</label><input type="date" id="masuk_rs"></div>
-                    <div class="form-group"><label>Masa Kerja RS</label><input type="text" id="masa_kerja_rs" readonly placeholder="Otomatis dihitung"></div>
+                    <div class="form-group"><label>Masa Kerja RS</label><input type="text" id="masa_kerja_rs" readonly placeholder="Otomatis terhitung"></div>
                 </div>
             </div>
 
@@ -152,19 +159,17 @@
                 </div>
             </div>
 
-            <div class="form-footer-box card" style="border-top: none; border-radius: 0 0 12px 12px; margin-top:-20px;">
-                <div class="form-actions">
-                    <button type="button" class="btn-close" id="btn-tutup-form">Tutup Form</button>
-                    <button type="submit" class="btn-save">💾 Simpan Data Pegawai</button>
-                </div>
+            <div class="form-footer-box">
+                <button type="button" class="btn-close" id="btn-tutup-form">Tutup Form</button>
+                <button type="submit" class="btn-save">💾 Simpan Data Pegawai</button>
             </div>
         </form>
     </div>
 
     <div class="card">
         <div class="action-bar">
-            <input type="text" id="input-cari" placeholder="Cari Berdasarkan Nama / NIK...">
-            <div class="btn-group-export">
+            <input type="text" class="search-input" id="input-cari" placeholder="Cari Nama / NIK...">
+            <div>
                 <button class="btn-xls" id="btn-excel">📥 Unduh Excel</button>
                 <button class="btn-pdf" id="btn-pdf">📥 Cetak PDF</button>
             </div>
@@ -181,7 +186,7 @@
                         <th>MASUK RS</th>
                         <th>PENDIDIKAN</th>
                         <th>RUANGAN</th>
-                        <th style="text-align: center;">AKSI UTAMA</th>
+                        <th style="text-align: center;">AKSI</th>
                     </tr>
                 </thead>
                 <tbody id="body-tabel-pegawai"></tbody>
@@ -191,7 +196,7 @@
 
     <div id="detail-panel" class="card">
         <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px;">
-            <h3 style="color: var(--primary)">🔍 Panel Detail Rekam Data Pegawai</h3>
+            <h3 style="color: var(--primary)">🔍 Panel Ringkasan Informasi Lengkap Pegawai</h3>
             <button id="btn-tutup-detail" style="background:#cbd5e1; border:none; padding:4px 10px; cursor:pointer; font-weight:bold; border-radius:4px;">Tutup Panel [X]</button>
         </div>
         <div class="detail-grid-view" id="wadah-detail-item"></div>
