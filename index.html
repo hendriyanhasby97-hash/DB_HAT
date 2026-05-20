@@ -1,188 +1,68 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistem Informasi Kepegawaian (SIMPEG)</title>
+    <title>Sistem Manajemen Pegawai</title>
     <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <!-- FontAwesome untuk Icon -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome CDN untuk Ikon -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        /* Transisi halus untuk membuka/menutup dropdown */
-        .dropdown-container {
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.3s ease-out;
-        }
-        .dropdown-container.open {
-            max-height: 500px; /* Nilai aman agar menu terlihat penuh */
-            transition: max-height 0.3s ease-in;
-        }
-        /* Rotasi panah indikator */
-        .chevron-icon {
-            transition: transform 0.2s ease;
-        }
-        .rotate-chevron {
-            transform: rotate(180deg);
-        }
-    </style>
 </head>
-<body class="bg-gray-100 font-sans text-gray-800">
+<body class="bg-slate-100 font-sans text-slate-800 antialiased">
 
-    <!-- SCREEN 1: HALAMAN LOGIN -->
-    <div id="login-screen" class="flex min-h-screen items-center justify-center bg-gray-900 px-4">
-        <div class="w-full max-w-md space-y-8 rounded-xl bg-white p-8 shadow-2xl">
-            <div class="text-center">
-                <i class="fa-solid fa-users-gear text-5xl text-blue-600"></i>
-                <h2 class="mt-4 text-3xl font-bold tracking-tight text-gray-950">SIMPEG Login</h2>
-                <p class="mt-2 text-sm text-gray-600">Silakan masuk menggunakan akun Supabase Anda</p>
-            </div>
-            <form id="login-form" class="mt-8 space-y-6">
-                <div class="space-y-4 rounded-md shadow-sm">
-                    <div>
-                        <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
-                        <input id="email" type="email" required class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" placeholder="admin@instansi.go.id">
+    <!-- CONTAINER UTAMA -->
+    <div class="min-h-screen flex flex-col">
+        <!-- Navbar -->
+        <header class="bg-white border-b border-gray-200 sticky top-0 z-40 shadow-xs">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="bg-blue-600 p-2 rounded-lg text-white">
+                        <i class="fa-solid fa-users-gear text-lg"></i>
                     </div>
                     <div>
-                        <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
-                        <input id="password" type="password" required class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" placeholder="••••••••">
+                        <h1 class="font-bold text-gray-900 leading-tight">SIMPEG</h1>
+                        <p class="text-xs text-gray-500">Sistem Informasi Kepegawaian</p>
                     </div>
-                </div>
-                <div>
-                    <button type="submit" class="group relative flex w-full justify-center rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer transition">
-                        Masuk Aplikasi
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- SCREEN 2: APLIKASI UTAMA (WITH DROPDOWN SIDEBAR) -->
-    <div id="main-screen" class="hidden flex h-screen overflow-hidden">
-        
-        <!-- SIDEBAR -->
-        <aside class="w-64 bg-slate-900 text-slate-300 flex flex-col shadow-xl overflow-y-auto">
-            <!-- Header Sidebar -->
-            <div class="p-5 flex items-center gap-3 border-b border-slate-800">
-                <i class="fa-solid fa-hospital-user text-2xl text-blue-400"></i>
-                <div>
-                    <h1 class="font-bold text-white leading-none">SIMPEG App</h1>
-                    <span class="text-xs text-slate-500">v1.0 - Supabase Ready</span>
                 </div>
             </div>
+        </header>
 
-            <!-- Navigasi Menu Dropdown -->
-            <nav class="flex-1 p-3 space-y-2 text-sm">
-                
-                <!-- 1. Dashboard (Tanpa Dropdown) -->
-                <button onclick="switchMenu('dashboard', this)" class="menu-btn bg-slate-800 text-white font-semibold w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-left hover:bg-slate-800 hover:text-white transition cursor-pointer">
-                    <i class="fa-solid fa-chart-pie w-5 text-center text-blue-400"></i> 
-                    <span class="flex-1">Dashboard</span>
-                </button>
-
-                <!-- 2. Dropdown: Management Pegawai -->
-                <div>
-                    <button onclick="toggleDropdown('dropdown-management', this)" class="w-full flex items-center justify-between px-4 py-2.5 rounded-lg text-left hover:bg-slate-800 hover:text-white transition text-slate-400 font-medium cursor-pointer">
-                        <span class="flex items-center gap-3">
-                            <i class="fa-solid fa-address-book w-5 text-center"></i> Management Pegawai
-                        </span>
-                        <i class="fa-solid fa-chevron-down text-xs chevron-icon"></i>
-                    </button>
-                    <div id="dropdown-management" class="dropdown-container bg-slate-950/40 rounded-lg mt-1 pl-4 space-y-1">
-                        <button onclick="switchMenu('daftar-pegawai', this)" class="menu-btn w-full flex items-center gap-3 px-4 py-2 rounded-lg text-left text-slate-400 hover:text-white transition text-xs py-2 cursor-pointer">▪ Daftar Pegawai</button>
-                        <button onclick="switchMenu('riwayat-pangkat', this)" class="menu-btn w-full flex items-center gap-3 px-4 py-2 rounded-lg text-left text-slate-400 hover:text-white transition text-xs py-2 cursor-pointer">▪ Riwayat Pangkat</button>
-                        <button onclick="switchMenu('riwayat-pendidikan', this)" class="menu-btn w-full flex items-center gap-3 px-4 py-2 rounded-lg text-left text-slate-400 hover:text-white transition text-xs py-2 cursor-pointer">▪ Riwayat Pendidikan</button>
-                        <button onclick="switchMenu('riwayat-jabatan', this)" class="menu-btn w-full flex items-center gap-3 px-4 py-2 rounded-lg text-left text-slate-400 hover:text-white transition text-xs py-2 cursor-pointer">▪ Riwayat Jabatan</button>
-                        <button onclick="switchMenu('data-keluarga', this)" class="menu-btn w-full flex items-center gap-3 px-4 py-2 rounded-lg text-left text-slate-400 hover:text-white transition text-xs py-2 cursor-pointer">▪ Data Keluarga</button>
-                    </div>
+        <!-- Main Content Area -->
+        <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <!-- Tempat Komponen JavaScript Merender Tampilan -->
+            <div id="app-root">
+                <!-- Loader bawaan sebelum script selesai dimuat -->
+                <div class="flex flex-col items-center justify-center py-20 text-gray-400">
+                    <i class="fa-solid fa-circle-notch fa-spin text-3xl mb-3 text-blue-600"></i>
+                    <p class="text-sm font-medium">Menginisialisasi sistem...</p>
                 </div>
-
-                <!-- 3. Dropdown: Operasional -->
-                <div>
-                    <button onclick="toggleDropdown('dropdown-operasional', this)" class="w-full flex items-center justify-between px-4 py-2.5 rounded-lg text-left hover:bg-slate-800 hover:text-white transition text-slate-400 font-medium cursor-pointer">
-                        <span class="flex items-center gap-3">
-                            <i class="fa-solid fa-shuffle w-5 text-center"></i> Operasional
-                        </span>
-                        <i class="fa-solid fa-chevron-down text-xs chevron-icon"></i>
-                    </button>
-                    <div id="dropdown-operasional" class="dropdown-container bg-slate-950/40 rounded-lg mt-1 pl-4 space-y-1">
-                        <button onclick="switchMenu('pegawai-masuk', this)" class="menu-btn w-full flex items-center gap-3 px-4 py-2 rounded-lg text-left text-slate-400 hover:text-white transition text-xs py-2 cursor-pointer">▪ Pegawai Masuk</button>
-                        <button onclick="switchMenu('pegawai-keluar', this)" class="menu-btn w-full flex items-center gap-3 px-4 py-2 rounded-lg text-left text-slate-400 hover:text-white transition text-xs py-2 cursor-pointer">▪ Pegawai Keluar</button>
-                        <button onclick="switchMenu('catatan-mutasi', this)" class="menu-btn w-full flex items-center gap-3 px-4 py-2 rounded-lg text-left text-slate-400 hover:text-white transition text-xs py-2 cursor-pointer">▪ Catatan Mutasi</button>
-                    </div>
-                </div>
-
-                <!-- 4. Dropdown: Izin Kerja -->
-                <div>
-                    <button onclick="toggleDropdown('dropdown-izin', this)" class="w-full flex items-center justify-between px-4 py-2.5 rounded-lg text-left hover:bg-slate-800 hover:text-white transition text-slate-400 font-medium cursor-pointer">
-                        <span class="flex items-center gap-3">
-                            <i class="fa-solid fa-id-card w-5 text-center"></i> Izin Kerja
-                        </span>
-                        <i class="fa-solid fa-chevron-down text-xs chevron-icon"></i>
-                    </button>
-                    <div id="dropdown-izin" class="dropdown-container bg-slate-950/40 rounded-lg mt-1 pl-4 space-y-1">
-                        <button onclick="switchMenu('str', this)" class="menu-btn w-full flex items-center gap-3 px-4 py-2 rounded-lg text-left text-slate-400 hover:text-white transition text-xs py-2 cursor-pointer">▪ STR</button>
-                        <button onclick="switchMenu('sik', this)" class="menu-btn w-full flex items-center gap-3 px-4 py-2 rounded-lg text-left text-slate-400 hover:text-white transition text-xs py-2 cursor-pointer">▪ SIK</button>
-                    </div>
-                </div>
-
-                <!-- 5. Dropdown: Administrasi Kepegawaian -->
-                <div>
-                    <button onclick="toggleDropdown('dropdown-admin', this)" class="w-full flex items-center justify-between px-4 py-2.5 rounded-lg text-left hover:bg-slate-800 hover:text-white transition text-slate-400 font-medium cursor-pointer">
-                        <span class="flex items-center gap-3">
-                            <i class="fa-solid fa-folder-open w-5 text-center"></i> Administrasi
-                        </span>
-                        <i class="fa-solid fa-chevron-down text-xs chevron-icon"></i>
-                    </button>
-                    <div id="dropdown-admin" class="dropdown-container bg-slate-950/40 rounded-lg mt-1 pl-4 space-y-1">
-                        <button onclick="switchMenu('surat-masuk', this)" class="menu-btn w-full flex items-center gap-3 px-4 py-2 rounded-lg text-left text-slate-400 hover:text-white transition text-xs py-2 cursor-pointer">▪ Surat Masuk</button>
-                        <button onclick="switchMenu('surat-keluar', this)" class="menu-btn w-full flex items-center gap-3 px-4 py-2 rounded-lg text-left text-slate-400 hover:text-white transition text-xs py-2 cursor-pointer">▪ Surat Keluar</button>
-                        <button onclick="switchMenu('nota-tugas', this)" class="menu-btn w-full flex items-center gap-3 px-4 py-2 rounded-lg text-left text-slate-400 hover:text-white transition text-xs py-2 cursor-pointer">▪ Nota Tugas</button>
-                        <button onclick="switchMenu('pengajuan-tubel', this)" class="menu-btn w-full flex items-center gap-3 px-4 py-2 rounded-lg text-left text-slate-400 hover:text-white transition text-xs py-2 cursor-pointer">▪ Pengajuan Tubel</button>
-                        <button onclick="switchMenu('pengajuan-cuti', this)" class="menu-btn w-full flex items-center gap-3 px-4 py-2 rounded-lg text-left text-slate-400 hover:text-white transition text-xs py-2 cursor-pointer">▪ Pengajuan Cuti</button>
-                        <button onclick="switchMenu('pengajuan-naik-pangkat', this)" class="menu-btn w-full flex items-center gap-3 px-4 py-2 rounded-lg text-left text-slate-400 hover:text-white transition text-xs py-2 cursor-pointer">▪ Naik Pangkat</button>
-                        <button onclick="switchMenu('pengajuan-fungsional', this)" class="menu-btn w-full flex items-center gap-3 px-4 py-2 rounded-lg text-left text-slate-400 hover:text-white transition text-xs py-2 cursor-pointer">▪ Jabatan Fungsional</button>
-                    </div>
-                </div>
-
-            </nav>
-
-            <!-- Footer Sidebar (User & Logout) -->
-            <div class="p-4 border-t border-slate-800 bg-slate-950 flex items-center justify-between">
-                <div class="flex items-center gap-2 overflow-hidden">
-                    <div class="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center font-bold text-white text-sm">A</div>
-                    <div class="overflow-hidden">
-                        <p class="text-xs font-medium text-white truncate" id="user-display">Admin SIMPEG</p>
-                        <p class="text-[10px] text-slate-400 truncate">Administrator</p>
-                    </div>
-                </div>
-                <button id="logout-btn" class="text-slate-400 hover:text-red-400 p-2 rounded transition cursor-pointer" title="Keluar">
-                    <i class="fa-solid fa-right-from-bracket"></i>
-                </button>
-            </div>
-        </aside>
-
-        <!-- AREA KONTEN UTAMA -->
-        <main class="flex-1 flex flex-col bg-slate-50 overflow-hidden">
-            <!-- Topbar / Header -->
-            <header class="bg-white border-b border-gray-200 px-8 py-4 flex items-center justify-between">
-                <h2 id="current-menu-title" class="text-xl font-bold text-gray-900">Dashboard</h2>
-                <div class="flex items-center gap-4">
-                    <span id="date-now" class="text-sm text-gray-500 font-medium"></span>
-                </div>
-            </header>
-
-            <!-- Container Konten Dinamis -->
-            <div id="content-area" class="flex-1 p-8 overflow-y-auto">
-                <!-- Konten akan di-render di sini oleh app.js -->
             </div>
         </main>
     </div>
 
-<!-- Masukkan file komponen sebelum app.js -->
+    <!-- ========================================== -->
+    <!-- SCRIPT MANAGEMENT & CONFIGURATION -->
+    <!-- ========================================== -->
+
+    <!-- 1. Muat Library Supabase CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- 2. Kredensial & Inisialisasi Klien Supabase -->
+    <script>
+        // Masukkan URL dan Anon Key project Supabase Anda di sini
+        const SUPABASE_URL = "https://MASUKKAN_URL_SUPABASE_ANDA.supabase.co";
+        const SUPABASE_ANON_KEY = "MASUKKAN_ANON_KEY_SUPABASE_ANDA_DI_SINI";
+
+        // Inisialisasi variabel global agar bisa dipakai oleh file JS lain
+        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    </script>
+
+    <!-- 3. Muat Script Komponen Halaman Pegawai -->
     <script src="daftar-pegawai.js"></script>
-    <!-- Script Utama -->
+
+    <!-- 4. Muat Script Router / Controller Aplikasi Utama -->
     <script src="app.js"></script>
+
 </body>
 </html>
