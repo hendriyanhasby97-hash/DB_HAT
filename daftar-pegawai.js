@@ -70,11 +70,6 @@ async function querySemuaPegawai() {
     `).join('');
 }
 
-// Pastikan fungsi-fungsi ini di-export ke window agar bisa diakses tombol HTML
-window.renderDaftarPegawaiComponent = renderDaftarPegawaiComponent;
-window.tampilkanDetailPegawai = tampilkanDetailPegawai;
-window.querySemuaPegawai = querySemuaPegawai;
-
 function renderDaftarPegawaiComponent() {
     // Tarik data setelah komponen termuat di DOM
     setTimeout(() => querySemuaPegawai(), 100);
@@ -723,6 +718,9 @@ async function hapusPegawai(id, nama) {
 // =======================================================
 // EXPORT UNTUK WINDOW GLOBAL SCOPE (Mencegah Error Router)
 // =======================================================
+window.renderDaftarPegawaiComponent = renderDaftarPegawaiComponent;
+window.tampilkanDetailPegawai = tampilkanDetailPegawai;
+window.querySemuaPegawai = querySemuaPegawai;
 window.renderDaftarPegawaiComponent = renderDaftarPegawaiComponent;
 window.autoHitungTmtCpns = autoHitungTmtCpns;
 window.autoHitungTmtPensiun = autoHitungTmtPensiun;
