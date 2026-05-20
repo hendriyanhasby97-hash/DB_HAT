@@ -10,7 +10,6 @@ function renderDaftarPegawaiComponent() {
     setTimeout(() => querySemuaPegawai(), 100);
 
     return `
-        <!-- Bagian Atas: Tombol Aksi & Cari -->
         <div class="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-4 rounded-xl border border-gray-200 shadow-xs mb-4">
             <div class="relative w-full sm:w-72">
                 <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
@@ -22,7 +21,6 @@ function renderDaftarPegawaiComponent() {
             </button>
         </div>
 
-        <!-- Tabel Kontainer -->
         <div class="bg-white rounded-xl border border-gray-200 shadow-xs overflow-hidden">
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse table-auto min-w-[1200px]">
@@ -50,14 +48,10 @@ function renderDaftarPegawaiComponent() {
             </div>
         </div>
 
-        <!-- ======================================================= -->
-        <!-- MODAL JUMBO GRID (SINKRONISASI DATA KESELURUHAN)         -->
-        <!-- ======================================================= -->
         <div id="modal-pegawai" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
             <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-xs" onclick="tutupModalPegawai()"></div>
             
             <div class="bg-white rounded-2xl shadow-2xl border border-gray-100 w-full max-w-5xl overflow-hidden flex flex-col relative z-10 transform scale-95 transition-all duration-200 my-8">
-                <!-- Header -->
                 <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-slate-50">
                     <div class="flex items-center gap-2.5">
                         <div id="modal-icon-container" class="p-2 bg-blue-50 text-blue-600 rounded-lg text-sm">
@@ -68,17 +62,15 @@ function renderDaftarPegawaiComponent() {
                             <p class="text-[10px] text-gray-400 font-medium">Pengisian komprehensif master data kepegawaian institusi sakit</p>
                         </div>
                     </div>
-                    <button onclick="tutupModalPegawai()" class="text-gray-400 hover:text-gray-600 p-1.5 rounded-lg hover:bg-gray-100 transition-all cursor-pointer">
+                    <button type="button" onclick="tutupModalPegawai()" class="text-gray-400 hover:text-gray-600 p-1.5 rounded-lg hover:bg-gray-100 transition-all cursor-pointer">
                         <i class="fa-solid fa-xmark text-sm"></i>
                     </button>
                 </div>
 
-                <!-- Form Jumbo Grid Space -->
                 <form onsubmit="handleSimpanPegawai(event)" class="p-6 space-y-6 overflow-y-auto max-h-[78vh] bg-slate-50/50">
                     
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         
-                        <!-- GRID KOLOM 1: IDENTITAS POKOK -->
                         <div class="bg-white p-4 rounded-xl border border-gray-200/80 shadow-xs space-y-3.5">
                             <h4 class="text-[11px] font-black text-blue-600 uppercase tracking-wider border-b border-slate-100 pb-1.5 flex items-center gap-1.5"><i class="fa-solid fa-address-card text-slate-400"></i> 1. Identitas Pokok</h4>
                             
@@ -138,7 +130,6 @@ function renderDaftarPegawaiComponent() {
                             </div>
                         </div>
 
-                        <!-- GRID KOLOM 2: PENUGASAN & KEPANGKATAN -->
                         <div class="bg-white p-4 rounded-xl border border-gray-200/80 shadow-xs space-y-3.5">
                             <h4 class="text-[11px] font-black text-blue-600 uppercase tracking-wider border-b border-slate-100 pb-1.5 flex items-center gap-1.5"><i class="fa-solid fa-sitemap text-slate-400"></i> 2. Penugasan & Kepangkatan</h4>
                             
@@ -231,7 +222,6 @@ function renderDaftarPegawaiComponent() {
                             </div>
                         </div>
 
-                        <!-- GRID KOLOM 3: KALKULASI & BERKAS DATA -->
                         <div class="bg-white p-4 rounded-xl border border-gray-200/80 shadow-xs space-y-3.5">
                             <h4 class="text-[11px] font-black text-blue-600 uppercase tracking-wider border-b border-slate-100 pb-1.5 flex items-center gap-1.5"><i class="fa-solid fa-calculator text-slate-400"></i> 3. Kalkulasi & Berkas Data</h4>
                             
@@ -301,7 +291,6 @@ function renderDaftarPegawaiComponent() {
                         </div>
                     </div>
 
-                    <!-- Tombol Form Submit -->
                     <div class="flex items-center justify-end gap-2 pt-3 border-t border-gray-200">
                         <button type="button" onclick="tutupModalPegawai()" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-bold text-xs cursor-pointer transition-all">Batal</button>
                         <button type="submit" id="btn-simpan-pegawai" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-xs cursor-pointer transition-all shadow-md">Simpan Seluruh Data Kepegawaian</button>
@@ -359,7 +348,7 @@ function autoHitungTmtPensiun() {
 
     const lahir = new Date(tanggalLahirStr);
     let tahunPensiun = lahir.getFullYear() + bupTahun;
-    let bulanPensiun = lahir.getMonth() + 1; // Maju ke 1 bulan berikutnya setelah ultah pensiun
+    let bulanPensiun = lahir.getMonth() + 1; 
 
     if (bulanPensiun > 11) {
         bulanPensiun = 0;
@@ -660,3 +649,17 @@ async function hapusPegawai(id, nama) {
         alert("Gagal menghapus entri:\n" + err.message);
     }
 }
+
+// =======================================================
+// EXPORT UNTUK WINDOW GLOBAL SCOPE (Mencegah Error Router)
+// =======================================================
+window.renderDaftarPegawaiComponent = renderDaftarPegawaiComponent;
+window.autoHitungTmtCpns = autoHitungTmtCpns;
+window.autoHitungTmtPensiun = autoHitungTmtPensiun;
+window.autoKalkulasiMasaKerja = autoKalkulasiMasaKerja;
+window.bukaModalPegawai = bukaModalPegawai;
+window.tutupModalPegawai = tutupModalPegawai;
+window.ambilPegawaiSatuData = ambilPegawaiSatuData;
+window.handleSimpanPegawai = handleSimpanPegawai;
+window.hapusPegawai = hapusPegawai;
+window.querySemuaPegawai = querySemuaPegawai;
