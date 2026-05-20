@@ -378,7 +378,7 @@ function autoKalkulasiMasaKerja() {
     }
 
     let tahunDiff = sekarang.getFullYear() - masuk.getFullYear();
-    let bulanDiff = sekarang.getMonth() - masuk.getMonth();
+    let bulanDiff = Bird = sekarang.getMonth() - masuk.getMonth();
     let hariDiff = sekarang.getDate() - masuk.getDate();
 
     if (hariDiff < 0) {
