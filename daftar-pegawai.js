@@ -63,7 +63,7 @@ async function querySemuaPegawai() {
             <td class="py-3 font-bold">${item.nama}</td>
             <td class="py-3"><span class="px-2 py-1 bg-green-100 text-green-700 rounded-full text-[10px]">${item.status}</span></td>
             <td class="py-3 text-center">
-                <button onclick='tampilkanDetailPegawai(${JSON.stringify(item)})' class="text-emerald-600 p-2"><i class="fa-solid fa-eye"></i></button>
+                <button onclick='tampilkanDetailPegawai(${JSON.stringify(item)})' class="text-emerald-600 hover:text-emerald-800 p-2 transition-all" title="Lihat Detail" <i class="fa-solid fa-eye"></i></button>
                 <button onclick="ambilPegawaiSatuData('${item.id_pegawai || item.id}')" class="text-blue-600 p-2"><i class="fa-solid fa-pen-to-square"></i></button>
             </td>
         </tr>
@@ -720,7 +720,6 @@ async function hapusPegawai(id, nama) {
 // =======================================================
 window.renderDaftarPegawaiComponent = renderDaftarPegawaiComponent;
 window.tampilkanDetailPegawai = tampilkanDetailPegawai;
-window.querySemuaPegawai = querySemuaPegawai;
 window.renderDaftarPegawaiComponent = renderDaftarPegawaiComponent;
 window.autoHitungTmtCpns = autoHitungTmtCpns;
 window.autoHitungTmtPensiun = autoHitungTmtPensiun;
