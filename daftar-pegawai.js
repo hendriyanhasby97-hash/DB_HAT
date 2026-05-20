@@ -1,112 +1,124 @@
 /**
- * DAFTAR-PEGAWAI.JS - Komponen Manajemen Pegawai (Supabase CRUD)
- * Berisi logika render UI, validasi form, dan interaksi database.
+ * DAFTAR-PEGAWAI.JS - Manajemen CRUD Pegawai dengan Modal Pop-up
  */
 
-// State Aplikasi Lokal
-let DATA_PEGAWAI_LOCAL = [];
-let MODE_FORM = "TAMBAH"; // Pilihan: "TAMBAH", "EDIT", "DETAIL"
-let ID_PEGAWAI_TERPILIH = null;
+// State Global untuk menyimpan data pegawai yang sedang diedit (null artinya mode Tambah)
+let pegawaiTerpilihId = null;
 
-/**
- * 1. FUNGSI UTAMA: Dipanggil oleh app.js untuk merender kerangka halaman
- */
+// Fungsi Utama: Mengembalikan template HTML awal tempat tabel dan modal akan bersarang
 function renderDaftarPegawaiComponent() {
-    // Jalankan penarikan data dari Supabase secara asinkron setelah kerangka terpasang
-    setTimeout(() => {
-        fetchPegawaiDariSupabase();
-    }, 50);
+    // Jalankan penarikan data pertama kali setelah komponen terpasang
+    setTimeout(() => querySemuaPegawai(), 100);
 
     return `
-        <!-- Bagian Atas: Tombol Aksi & Pencarian -->
-        <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 bg-white p-4 rounded-xl border border-gray-200 shadow-xs mb-6">
-            <div class="relative flex-1 max-w-md">
-                <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
-                <input type="text" id="input-cari-pegawai" oninput="handleCariPegawai(this.value)" placeholder="Cari nama atau NIP pegawai..." class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
+        <!-- Bagian Atas: Tombol Aksi & Cari -->
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-4 rounded-xl border border-gray-200 shadow-xs">
+            <div class="relative w-full sm:w-72">
+                <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+                <input type="text" id="cari-pegawai" oninput="querySemuaPegawai()" placeholder="Cari nama atau NIP..." class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-gray-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all">
             </div>
-            <button onclick="bukaModalForm('TAMBAH')" class="bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm px-4 py-2.5 rounded-lg flex items-center justify-center gap-2 shadow-xs hover:shadow-md transition-all active:scale-95 cursor-pointer">
-                <i class="fa-solid fa-plus text-xs"></i>
+            <button onclick="bukaModalPegawai()" class="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-4 py-2.5 rounded-lg flex items-center justify-center gap-2 transition-all shadow-sm active:scale-98 cursor-pointer">
+                <i class="fa-solid fa-user-plus"></i>
                 Tambah Pegawai Baru
             </button>
         </div>
 
-        <!-- Bagian Tengah: Tabel Data -->
-        <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <!-- Wadah untuk Tabel Data -->
+        <div class="bg-white rounded-xl border border-gray-200 shadow-xs overflow-hidden">
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse">
                     <thead>
-                        <tr class="bg-slate-50 border-b border-gray-200 text-xs font-bold text-gray-500 uppercase tracking-wider">
-                            <th class="py-3 px-4">Pegawai</th>
-                            <th class="py-3 px-4">NIP</th>
-                            <th class="py-3 px-4">Kelompok</th>
-                            <th class="py-3 px-4">Jabatan / Unit</th>
-                            <th class="py-3 px-4">Status</th>
-                            <th class="py-3 px-4 text-right">Aksi</th>
+                        <tr class="bg-slate-50 border-b border-gray-200 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                            <th class="py-3.5 px-4 w-12 text-center">No</th>
+                            <th class="py-3.5 px-4">Pegawai</th>
+                            <th class="py-3.5 px-4">Kelompok & Status</th>
+                            <th class="py-3.5 px-4">Jabatan</th>
+                            <th class="py-3.5 px-4 w-28 text-center">Aksi</th>
                         </tr>
                     </thead>
-                    <tbody id="tabel-body-pegawai" class="divide-y divide-gray-100 text-sm text-gray-700">
-                        <!-- Data diisi otomatis oleh fungsi renderTabelPegawai -->
+                    <tbody id="tabel-body-pegawai" class="divide-y divide-gray-100 text-xs text-gray-700">
+                        <tr>
+                            <td colspan="5" class="py-8 text-center text-gray-400">
+                                <i class="fa-solid fa-circle-notch fa-spin text-lg text-blue-500 mb-2 block"></i>
+                                Memuat data dari Supabase...
+                            </td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
-            <div id="tabel-empty-state" class="hidden flex-col items-center justify-center py-16 text-gray-400">
-                <i class="fa-solid fa-folder-open text-4xl mb-3 text-slate-300"></i>
-                <p class="text-sm font-medium">Belum ada data pegawai.</p>
-            </div>
         </div>
 
-        <!-- BAGIAN BAWAH: MODAL FORM (TAMBAH / EDIT / DETAIL) -->
-        <div id="modal-form-pegawai" class="hidden fixed inset-0 z-50 overflow-y-auto bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
-            <div class="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden border border-gray-100 transform transition-all scale-100">
+        <!-- ========================================== -->
+        <!-- MODAL FORM (TAMBAH / EDIT PEGAWAI)          -->
+        <!-- ========================================== -->
+        <div id="modal-pegawai" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+            <!-- Backdrop gelap transparan -->
+            <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-xs" onclick="tutupModalPegawai()"></div>
+            
+            <!-- Konten Box Modal -->
+            <div class="bg-white rounded-2xl shadow-xl border border-gray-100 w-full max-w-lg overflow-hidden flex flex-col relative z-10 transform scale-95 transition-all duration-200">
                 <!-- Header Modal -->
-                <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between bg-slate-50">
-                    <h3 id="modal-title" class="font-bold text-gray-900 text-base">Form Pegawai</h3>
-                    <button onclick="tutupModalForm()" class="text-gray-400 hover:text-gray-600 p-1.5 rounded-lg hover:bg-gray-100 transition-all cursor-pointer">
-                        <i class="fa-solid fa-xmark text-lg"></i>
-                    </button>
-                </div>
-                <!-- Isi Form -->
-                <form id="form-pegawai" onsubmit="handleSimpanPegawai(event)" class="p-6 space-y-4">
-                    <div class="grid grid-cols-1 gap-4">
-                        <div>
-                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Nama Lengkap</label>
-                            <input type="text" id="form-nama" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
+                <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-slate-50">
+                    <div class="flex items-center gap-2.5">
+                        <div id="modal-icon-container" class="p-2 bg-blue-50 text-blue-600 rounded-lg text-sm">
+                            <i class="fa-solid fa-user-plus"></i>
                         </div>
                         <div>
-                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">NIP / Nomor Identitas</label>
-                            <input type="text" id="form-nip" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
-                        </div>
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Kelompok</label>
-                                <select id="form-kelompok" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
-                                    <option value="ASN">ASN</option>
-                                    <option value="BLUD">BLUD</option>
-                                    <option value="APBD">APBD</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Status Keaktifan</label>
-                                <select id="form-status" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
-                                    <option value="AKTIF">AKTIF</option>
-                                    <option value="CUTI">CUTI</option>
-                                    <option value="NON-AKTIF">NON-AKTIF</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Jabatan</label>
-                            <input type="text" id="form-jabatan" required placeholder="Contoh: Perawat Ahli Pertama" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Unit Kerja</label>
-                            <input type="text" id="form-unit" required placeholder="Contoh: Ruang Rawat Inap A" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
+                            <h3 id="modal-judul" class="text-sm font-black text-gray-900">Tambah Pegawai Baru</h3>
+                            <p class="text-[10px] text-gray-400 font-medium">Isi formulir data di bawah ini secara lengkap</p>
                         </div>
                     </div>
-                    <!-- Footer Tombol -->
-                    <div class="pt-4 border-t border-gray-100 flex items-center justify-end gap-2">
-                        <button type="button" onclick="tutupModalForm()" class="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-slate-50 transition-all cursor-pointer">Batal</button>
-                        <button type="submit" id="btn-submit-form" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium shadow-xs transition-all cursor-pointer">Simpan Data</button>
+                    <button onclick="tutupModalPegawai()" class="text-gray-400 hover:text-gray-600 p-1.5 rounded-lg hover:bg-gray-100 transition-all cursor-pointer">
+                        <i class="fa-solid fa-xmark text-sm"></i>
+                    </button>
+                </div>
+
+                <!-- Form Inputs -->
+                <form onsubmit="handleSimpanPegawai(event)" class="p-6 space-y-4 overflow-y-auto max-h-[70vh]">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Nomor Induk / NIP / NIK</label>
+                            <input type="text" id="form-nip" required class="w-full p-2.5 bg-slate-50 border border-gray-300 rounded-lg text-xs font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all" placeholder="Contoh: 1989011...">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Nama Lengkap & Gelar</label>
+                            <input type="text" id="form-nama" required class="w-full p-2.5 bg-slate-50 border border-gray-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all" placeholder="Nama tanpa singkatan">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Kelompok Kepegawaian</label>
+                            <select id="form-kelompok" class="w-full p-2.5 bg-slate-50 border border-gray-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all">
+                                <option value="ASN">ASN (PNS / PPPK)</option>
+                                <option value="BLUD">BLUD Kontrak</option>
+                                <option value="APBD">Tenaga APBD / Honorer</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Status Keaktifan</label>
+                            <select id="form-status" class="w-full p-2.5 bg-slate-50 border border-gray-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all">
+                                <option value="AKTIF">AKTIF</option>
+                                <option value="CUTI">SEDANG CUTI</option>
+                                <option value="MUTASI">PROSES MUTASI</option>
+                                <option value="NON-AKTIF">NON-AKTIF</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Nama Jabatan / Penugasan</label>
+                        <input type="text" id="form-jabatan" required class="w-full p-2.5 bg-slate-50 border border-gray-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all" placeholder="Misal: Perawat Penyelia, Pranata Komputer">
+                    </div>
+
+                    <!-- Footer Tombol Aksi di Modal -->
+                    <div class="flex items-center justify-end gap-2 pt-2 border-t border-gray-100 mt-4">
+                        <button type="button" onclick="tutupModalPegawai()" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg font-bold text-xs transition-all cursor-pointer">
+                            Batal
+                        </button>
+                        <button type="submit" id="btn-simpan-pegawai" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-xs transition-all shadow-sm cursor-pointer">
+                            Simpan Data
+                        </button>
                     </div>
                 </form>
             </div>
@@ -114,219 +126,187 @@ function renderDaftarPegawaiComponent() {
     `;
 }
 
-/**
- * 2. DATABASE OPERATIONS: Tarik data dari table 'pegawai' di Supabase
- */
-async function fetchPegawaiDariSupabase() {
+// Fungsi Tarik Data dari Supabase
+async function querySemuaPegawai() {
+    const tbody = document.getElementById('tabel-body-pegawai');
+    const kataKunci = document.getElementById('cari-pegawai') ? document.getElementById('cari-pegawai').value.trim() : '';
+    
     try {
-        const { data, error } = await supabase
-            .from('pegawai')
-            .select('*')
-            .order('created_at', { ascending: false });
+        let query = supabase.from('pegawai').select('*').order('created_at', { ascending: false });
+        
+        if (kataKunci !== '') {
+            query = query.or(`nama.ilike.%${kataKunci}%,nip.ilike.%${kataKunci}%`);
+        }
 
+        const { data, error } = await query;
         if (error) throw error;
 
-        DATA_PEGAWAI_LOCAL = data || [];
-        renderTabelPegawai(DATA_PEGAWAI_LOCAL);
+        // Panggil update counter widget di index.html jika fungsi tersedia
+        if (typeof updateDashboardCounters === 'function') updateDashboardCounters(data);
 
-        // Update indikator counter widget yang ada di index.html secara otomatis
-        if (typeof updateDashboardCounters === 'function') {
-            updateDashboardCounters(DATA_PEGAWAI_LOCAL);
+        if (!data || data.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="5" class="py-8 text-center text-gray-400 font-medium">
+                        <i class="fa-solid fa-folder-open text-xl block mb-2 opacity-60"></i>
+                        Tidak ada data pegawai ditemukan.
+                    </td>
+                </tr>
+            `;
+            return;
         }
+
+        // Susun Baris Tabel
+        tbody.innerHTML = data.map((item, index) => {
+            const badgeWarna = item.status === 'AKTIF' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-amber-50 text-amber-600 border-amber-200';
+            const kelompokWarna = item.kelompok === 'ASN' ? 'bg-purple-50 text-purple-600 border-purple-200' : 'bg-slate-100 text-slate-600 border-gray-300';
+            
+            return `
+                <tr class="hover:bg-slate-50/80 transition-all">
+                    <td class="py-3 px-4 text-center font-mono text-gray-400 font-bold">${index + 1}</td>
+                    <td class="py-3 px-4">
+                        <p class="font-bold text-gray-900">${item.nama}</p>
+                        <p class="text-[10px] font-mono text-gray-400 mt-0.5">${item.nip || '-'}</p>
+                    </td>
+                    <td class="py-3 px-4 space-y-1">
+                        <span class="inline-block px-2 py-0.5 rounded-md text-[10px] font-bold border ${kelompokWarna}">${item.kelompok || 'BLUD'}</span>
+                        <span class="inline-block px-2 py-0.5 rounded-md text-[10px] font-bold border ${badgeWarna}">${item.status || 'AKTIF'}</span>
+                    </td>
+                    <td class="py-3 px-4 font-medium text-gray-600">${item.jabatan || '-'}</td>
+                    <td class="py-3 px-4">
+                        <div class="flex items-center justify-center gap-1.5">
+                            <button onclick="ambilPegawaiSatuData('${item.id}')" class="p-1.5 text-blue-600 hover:bg-blue-50 border border-transparent hover:border-blue-200 rounded-md transition-all cursor-pointer" title="Ubah Data">
+                                <i class="fa-solid fa-pen-to-square text-sm"></i>
+                            </button>
+                            <button onclick="hapusPegawai('${item.id}', '${item.nama}')" class="p-1.5 text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200 rounded-md transition-all cursor-pointer" title="Hapus Permanen">
+                                <i class="fa-solid fa-trash-can text-sm"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+
     } catch (err) {
-        console.error("Gagal memuat data Supabase:", err.message);
-        alert("Terjadi kesalahan sinkronisasi database: " + err.message);
-    }
-}
-
-/**
- * 3. RENDER LOGIC: Membangun baris tabel HTML dari array data
- */
-function renderTabelPegawai(listPegawai) {
-    const tbody = document.getElementById('tabel-body-pegawai');
-    const emptyState = document.getElementById('tabel-empty-state');
-    
-    if (!tbody) return;
-    tbody.innerHTML = "";
-
-    if (listPegawai.length === 0) {
-        emptyState.classList.remove('hidden');
-        emptyState.classList.add('flex');
-        return;
-    }
-
-    emptyState.classList.remove('flex');
-    emptyState.classList.add('hidden');
-
-    listPegawai.forEach(p => {
-        // Atur warna badge status
-        let statusClass = "bg-emerald-50 text-emerald-700 border-emerald-200";
-        if (p.status === "CUTI") statusClass = "bg-amber-50 text-amber-700 border-amber-200";
-        if (p.status === "NON-AKTIF") statusClass = "bg-rose-50 text-rose-700 border-rose-200";
-
-        // Atur warna label kelompok
-        let badgeKelompok = "bg-purple-100 text-purple-800";
-        if (p.kelompok === "BLUD") badgeKelompok = "bg-blue-100 text-blue-800";
-        if (p.kelompok === "APBD") badgeKelompok = "bg-amber-100 text-amber-800";
-
-        const tr = document.createElement('tr');
-        tr.className = "hover:bg-slate-50/80 transition-colors";
-        tr.innerHTML = `
-            <td class="py-3.5 px-4 font-semibold text-gray-900">${p.nama || '-'}</td>
-            <td class="py-3.5 px-4 text-gray-500 font-mono text-xs">${p.nip || '-'}</td>
-            <td class="py-3.5 px-4">
-                <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold ${badgeKelompok}">${p.kelompok || '-'}</span>
-            </td>
-            <td class="py-3.5 px-4">
-                <div class="font-medium text-gray-800">${p.jabatan || '-'}</div>
-                <div class="text-xs text-gray-400 mt-0.5">${p.unit || '-'}</div>
-            </td>
-            <td class="py-3.5 px-4">
-                <span class="px-2 py-0.5 rounded-md text-xs font-bold border ${statusClass}">${p.status || 'AKTIF'}</span>
-            </td>
-            <td class="py-3.5 px-4 text-right">
-                <div class="flex items-center justify-end gap-1">
-                    <button onclick="bukaModalForm('DETAIL', '${p.id}')" class="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-all cursor-pointer" title="Detail"><i class="fa-solid fa-eye"></i></button>
-                    <button onclick="bukaModalForm('EDIT', '${p.id}')" class="p-1.5 text-gray-500 hover:text-amber-600 hover:bg-amber-50 rounded-md transition-all cursor-pointer" title="Ubah"><i class="fa-solid fa-pen-to-square"></i></button>
-                    <button onclick="handleHapusPegawai('${p.id}', '${p.nama}')" class="p-1.5 text-gray-500 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-all cursor-pointer" title="Hapus"><i class="fa-solid fa-trash-can"></i></button>
-                </div>
-            </td>
+        console.error(err);
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="5" class="py-6 text-center text-rose-600 font-semibold">
+                    <i class="fa-solid fa-triangle-exclamation text-lg mb-1 block"></i>
+                    Gagal mengambil data: ${err.message}
+                </td>
+            </tr>
         `;
-        tbody.appendChild(tr);
-    });
-}
-
-/**
- * 4. SEARCH ACTION: Memfilter tabel secara lokal
- */
-function handleCariPegawai(keyword) {
-    const kw = keyword.toLowerCase().trim();
-    if (kw === "") {
-        renderTabelPegawai(DATA_PEGAWAI_LOCAL);
-    } else {
-        const filtered = DATA_PEGAWAI_LOCAL.filter(p => 
-            (p.nama && p.nama.toLowerCase().includes(kw)) || 
-            (p.nip && p.nip.toLowerCase().includes(kw)) ||
-            (p.jabatan && p.jabatan.toLowerCase().includes(kw))
-        );
-        renderTabelPegawai(filtered);
     }
 }
 
-/**
- * 5. MODAL INTERACTION: Mengatur buka/tutup jendela form
- */
-function bukaModalForm(mode, id = null) {
-    MODE_FORM = mode;
-    ID_PEGAWAI_TERPILIH = id;
+// Fungsi Membuka Modal (Mode Tambah Karyawan Baru)
+function bukaModalPegawai() {
+    pegawaiTerpilihId = null; // Reset ID (menandakan ini data baru)
     
-    const modal = document.getElementById('modal-form-pegawai');
-    const title = document.getElementById('modal-title');
-    const btnSubmit = document.getElementById('btn-submit-form');
-    const form = document.getElementById('form-pegawai');
+    // Reset teks form ke mode tambah
+    document.getElementById('modal-judul').innerText = "Tambah Pegawai Baru";
+    document.getElementById('modal-icon-container').className = "p-2 bg-blue-50 text-blue-600 rounded-lg text-sm";
+    document.getElementById('modal-icon-container').innerHTML = `<i class="fa-solid fa-user-plus"></i>`;
     
-    form.reset();
-    btnSubmit.classList.remove('hidden');
-    
-    // Aktifkan kembali semua elemen input (setelah kemungkinan dinonaktifkan di mode DETAIL)
-    Array.from(form.elements).forEach(el => el.disabled = false);
+    // Bersihkan semua kotak input
+    document.getElementById('form-nip').value = "";
+    document.getElementById('form-nama').value = "";
+    document.getElementById('form-jabatan').value = "";
+    document.getElementById('form-kelompok').value = "ASN";
+    document.getElementById('form-status').value = "AKTIF";
 
-    if (mode === 'TAMBAH') {
-        title.innerText = "Tambah Pegawai Baru";
-        btnSubmit.innerText = "Simpan Baru";
-    } else {
-        // Cari objek data pegawai yang sesuai di lokal array
-        const p = DATA_PEGAWAI_LOCAL.find(item => item.id == id);
-        if (!p) return;
-
-        // Isikan data ke dalam input form
-        document.getElementById('form-nama').value = p.nama || "";
-        document.getElementById('form-nip').value = p.nip || "";
-        document.getElementById('form-kelompok').value = p.kelompok || "ASN";
-        document.getElementById('form-status').value = p.status || "AKTIF";
-        document.getElementById('form-jabatan').value = p.jabatan || "";
-        document.getElementById('form-unit').value = p.unit || "";
-
-        if (mode === 'EDIT') {
-            title.innerText = `Ubah Data: ${p.nama}`;
-            btnSubmit.innerText = "Simpan Perubahan";
-        } else if (mode === 'DETAIL') {
-            title.innerText = `Detail Data: ${p.nama}`;
-            btnSubmit.classList.add('hidden'); // Sembunyikan tombol simpan
-            // Kunci semua input agar bertindak sebagai read-only tampilan berkas
-            Array.from(form.elements).forEach(el => el.disabled = true);
-        }
-    }
-    
+    // Tampilkan modal secara visual
+    const modal = document.getElementById('modal-pegawai');
     modal.classList.remove('hidden');
 }
 
-function tutupModalForm() {
-    document.getElementById('modal-form-pegawai').classList.add('hidden');
-}
-
-/**
- * 6. CRUD CREATE & UPDATE ACTIONS: Mengirim data ke Supabase
- */
-async function handleSimpanPegawai(event) {
-    event.preventDefault();
-    
-    const payload = {
-        nama: document.getElementById('form-nama').value.trim(),
-        nip: document.getElementById('form-nip').value.trim(),
-        kelompok: document.getElementById('form-kelompok').value,
-        status: document.getElementById('form-status').value,
-        jabatan: document.getElementById('form-jabatan').value.trim(),
-        unit: document.getElementById('form-unit').value.trim()
-    };
-
+// Fungsi Membuka Modal & Mengisi Data Otomatis (Mode Edit)
+async function ambilPegawaiSatuData(id) {
     try {
-        if (MODE_FORM === 'TAMBAH') {
-            // Jalankan Perintah INSERT
-            const { error } = await supabase
-                .from('pegawai')
-                .insert([payload]);
-                
-            if (error) throw error;
-        } else if (MODE_FORM === 'EDIT') {
-            // Jalankan Perintah UPDATE
-            const { error } = await supabase
-                .from('pegawai')
-                .update(payload)
-                .eq('id', ID_PEGAWAI_TERPILIH);
-                
-            if (error) throw error;
-        }
+        const { data, error } = await supabase.from('pegawai').select('*').eq('id', id).single();
+        if (error) throw error;
 
-        tutupModalForm();
-        // Segarkan data tabel secara asinkron dari server database
-        fetchPegawaiDariSupabase();
-        
+        // Set ID global untuk penanda operasi update
+        pegawaiTerpilihId = data.id;
+
+        // Sesuaikan elemen judul modal ke mode edit
+        document.getElementById('modal-judul').innerText = "Ubah Data Pegawai";
+        document.getElementById('modal-icon-container').className = "p-2 bg-amber-50 text-amber-600 rounded-lg text-sm";
+        document.getElementById('modal-icon-container').innerHTML = `<i class="fa-solid fa-user-pen"></i>`;
+
+        // Masukkan data dari tabel ke formulir input modal
+        document.getElementById('form-nip').value = data.nip || "";
+        document.getElementById('form-nama').value = data.nama || "";
+        document.getElementById('form-jabatan').value = data.jabatan || "";
+        document.getElementById('form-kelompok').value = data.kelompok || "ASN";
+        document.getElementById('form-status').value = data.status || "AKTIF";
+
+        // Tampilkan modal
+        document.getElementById('modal-pegawai').classList.remove('hidden');
     } catch (err) {
-        console.error("Gagal menyimpan data:", err.message);
-        alert("Gagal memproses data ke database: " + err.message);
+        alert("Gagal memuat detail data pegawai:\n" + err.message);
     }
 }
 
-/**
- * 7. CRUD DELETE ACTION: Menghapus baris pegawai dari Supabase
- */
-async function handleHapusPegawai(id, nama) {
-    const konfirmasi = confirm(`Apakah Anda yakin ingin menghapus data pegawai "${nama}"? Tindakan ini tidak dapat dibatalkan.`);
+// Menutup Box Jendela Modal
+function tutupModalPegawai() {
+    document.getElementById('modal-pegawai').classList.add('hidden');
+}
+
+// Proses Eksekusi Simpan (Gabungan Insert / Update)
+async function handleSimpanPegawai(event) {
+    event.preventDefault();
+    const btn = document.getElementById('btn-simpan-pegawai');
+    
+    // Kumpulkan payload data dari form input
+    const payload = {
+        nip: document.getElementById('form-nip').value.trim(),
+        nama: document.getElementById('form-nama').value.trim(),
+        jabatan: document.getElementById('form-jabatan').value.trim(),
+        kelompok: document.getElementById('form-kelompok').value,
+        status: document.getElementById('form-status').value
+    };
+
+    // Ubah status tombol menjadi loading
+    btn.disabled = true;
+    btn.innerText = "Menyimpan...";
+
+    try {
+        if (pegawaiTerpilihId === null) {
+            // JALANAN LOGIKA: DATA BARU (INSERT)
+            const { error } = await supabase.from('pegawai').insert([payload]);
+            if (error) throw error;
+        } else {
+            // JALANAN LOGIKA: UBAH DATA (UPDATE)
+            const { error } = await supabase.from('pegawai').update(payload).eq('id', pegawaiTerpilihId);
+            if (error) throw error;
+        }
+
+        // Jika sukses, tutup jendela dialog, lalu segarkan isi tabel data
+        tutupModalPegawai();
+        querySemuaPegawai();
+    } catch (err) {
+        alert("Gagal memproses pengarsipan data:\n" + err.message);
+    } finally {
+        // Kembalikan ke keadaan tombol semula
+        btn.disabled = false;
+        btn.innerText = "Simpan Data";
+    }
+}
+
+// Fungsi Hapus Permanen Pegawai
+async function hapusPegawai(id, nama) {
+    const konfirmasi = confirm(`Apakah Anda yakin ingin menghapus data pegawai "${nama}" secara permanen?\nTindakan ini tidak bisa dibatalkan.`);
     if (!konfirmasi) return;
 
     try {
-        const { error } = await supabase
-            .from('pegawai')
-            .delete()
-            .eq('id', id);
-
+        const { error } = await supabase.from('pegawai').delete().eq('id', id);
         if (error) throw error;
         
-        // Segarkan data setelah berhasil dihapus
-        fetchPegawaiDariSupabase();
+        // Segarkan ulang data tabel sesudah data terhapus
+        querySemuaPegawai();
     } catch (err) {
-        console.error("Gagal menghapus data:", err.message);
-        alert("Gagal menghapus data dari database: " + err.message);
+        alert("Gagal menghapus entri:\n" + err.message);
     }
 }
