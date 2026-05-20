@@ -1,5 +1,15 @@
+// Global State untuk menyimpan data pegawai sementara setelah diambil dari Supabase
+let DATA_PEGAWAI_LOCAL = [];
+let EDIT_MODE_ID = null; // Menyimpan ID pegawai jika sedang dalam mode edit
+
 // Fungsi utama untuk memuat komponen Daftar Pegawai
 function renderDaftarPegawaiComponent() {
+    // Jalankan fetch data sesaat setelah komponen dirender ke DOM
+    setTimeout(() => {
+        fetchPegawaiDariSupabase();
+        initFormSubmitListener();
+    }, 100);
+
     return `
         <!-- HEADER COMPONENT -->
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
@@ -16,7 +26,7 @@ function renderDaftarPegawaiComponent() {
             <div class="p-5 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-4 bg-gray-50/50">
                 <div class="relative w-full sm:w-72">
                     <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-gray-400 text-sm"></i>
-                    <input type="text" placeholder="Cari nama, NIP, atau NIK..." class="pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm w-full focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-white">
+                    <input type="text" id="p_cari_pegawai" oninput="handleCariPegawai(this.value)" placeholder="Cari nama, NIP, atau NIK..." class="pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm w-full focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-white">
                 </div>
             </div>
             
@@ -27,39 +37,15 @@ function renderDaftarPegawaiComponent() {
                             <th class="p-4">Pegawai</th>
                             <th class="p-4">NIP / NIK</th>
                             <th class="p-4">Jabatan / Gol</th>
-                            <th class="p-4">Ruangan</th>
+                            <th class="p-4">Kelompok / Rumpun</th>
                             <th class="p-4">Status</th>
                             <th class="p-4 text-center">Aksi</th>
                         </tr>
                     </thead>
-                    <tbody class="text-sm divide-y divide-gray-100 text-gray-700">
-                        <tr class="hover:bg-gray-50/50 transition">
-                            <td class="p-4">
-                                <div class="flex items-center gap-3">
-                                    <div class="h-10 w-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-sm">BS</div>
-                                    <div>
-                                        <p class="font-semibold text-gray-900">Dr. Budi Santoso, Sp.B</p>
-                                        <p class="text-xs text-gray-500">budi.santoso@instansi.go.id</p>
-                                    </div>
-                                </div>
-                            </td>
-                            <td class="p-4">
-                                <p class="font-mono text-xs text-gray-900 font-medium">NIP: 199208122019031002</p>
-                                <p class="font-mono text-xs text-gray-400">NIK: 320102XXXXXXXXXX</p>
-                            </td>
-                            <td class="p-4">
-                                <p class="font-medium text-gray-800">Dokter Spesialis Bedah</p>
-                                <p class="text-xs text-gray-500">Gol: IV/a (Pembina)</p>
-                            </td>
-                            <td class="p-4 text-gray-600 font-medium">Instalasi Bedah Sentral</td>
-                            <td class="p-4">
-                                <span class="px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-xs font-semibold">AKTIF</span>
-                            </td>
-                            <td class="p-4 text-center">
-                                <div class="flex items-center justify-center gap-2">
-                                    <button class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition cursor-pointer"><i class="fa-solid fa-pen-to-square"></i></button>
-                                    <button class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition cursor-pointer"><i class="fa-solid fa-trash-can"></i></button>
-                                </div>
+                    <tbody id="tabel-pegawai-body" class="text-sm divide-y divide-gray-100 text-gray-700">
+                        <tr>
+                            <td colspan="6" class="p-8 text-center text-gray-400">
+                                <i class="fa-solid fa-spinner fa-spin mr-2"></i> Memuat data dari Supabase...
                             </td>
                         </tr>
                     </tbody>
@@ -67,13 +53,13 @@ function renderDaftarPegawaiComponent() {
             </div>
         </div>
 
-        <!-- MODAL JUMBO FORM INPUT PEGAWAI -->
+        <!-- MODAL JUMBO FORM INPUT & EDIT PEGAWAI -->
         <div id="modal-pegawai" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
             <div class="bg-white rounded-2xl w-full max-w-5xl shadow-2xl flex flex-col max-h-[90vh]">
                 <!-- Header Modal -->
                 <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-slate-50 rounded-t-2xl">
                     <div>
-                        <h3 class="text-lg font-bold text-gray-900 flex items-center gap-2"><i class="fa-solid fa-id-card-clip text-blue-600"></i> Formulir Biodata Pegawai</h3>
+                        <h3 id="modal-title" class="text-lg font-bold text-gray-900 flex items-center gap-2"><i class="fa-solid fa-id-card-clip text-blue-600"></i> Formulir Biodata Pegawai</h3>
                         <p class="text-xs text-gray-500 mt-0.5">Input data kepegawaian terintegrasi kalkulasi otomatis</p>
                     </div>
                     <button onclick="closeTambahPegawaiModal()" class="text-gray-400 hover:text-gray-600 p-1.5 rounded-lg hover:bg-gray-100 transition cursor-pointer"><i class="fa-solid fa-xmark text-lg"></i></button>
@@ -316,111 +302,366 @@ function renderDaftarPegawaiComponent() {
                 </form>
             </div>
         </div>
+
+        <!-- MODAL VIEW DETAIL PEGAWAI (READ-ONLY) -->
+        <div id="modal-view-pegawai" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+            <div class="bg-white rounded-2xl w-full max-w-3xl shadow-2xl flex flex-col max-h-[85vh]">
+                <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50 rounded-t-2xl">
+                    <h3 class="text-base font-bold text-gray-900 flex items-center gap-2"><i class="fa-solid fa-circle-info text-blue-500"></i> Detail Informasi Pegawai</h3>
+                    <button onclick="closeViewPegawaiModal()" class="text-gray-400 hover:text-gray-600 p-1.5 rounded-lg hover:bg-gray-100 transition cursor-pointer"><i class="fa-solid fa-xmark text-base"></i></button>
+                </div>
+                <div id="view-modal-content" class="p-6 overflow-y-auto space-y-4 text-xs">
+                    <!-- Konten detail diisi dinamis oleh JavaScript -->
+                </div>
+                <div class="border-t border-gray-100 p-4 bg-gray-50 flex justify-end rounded-b-2xl">
+                    <button onclick="closeViewPegawaiModal()" class="px-4 py-2 bg-gray-800 text-white font-medium rounded-lg hover:bg-gray-900 cursor-pointer">Tutup Detail</button>
+                </div>
+            </div>
+        </div>
     `;
 }
 
-// --- AUTOMATION LOGIC FUNCTIONS ---
+// --- DATABASE OPERATIONS (SUPABASE CRUD) ---
 
-// 1. Ekstraksi TMT CPNS Otomatis dari 18 digit NIP
-function hitungTmtCpnsDariNip(nipValue) {
-    const cleanNip = nipValue.replace(/\s+/g, ''); // bersihkan spasi jika ada
-    const targetInput = document.getElementById('p_tmt_cpns');
+// 1. Ambil Data (READ)
+async function fetchPegawaiDariSupabase() {
+    const tbody = document.getElementById('tabel-pegawai-body');
+    if (!tbody) return;
+
+    try {
+        // Asumsi variabel 'supabase' sudah dideklarasikan global di index.html / app.js Anda
+        const { data, error } = await supabase
+            .from('pegawai')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        DATA_PEGAWAI_LOCAL = data || [];
+        renderTabelPegawai(DATA_PEGAWAI_LOCAL);
+
+    } catch (error) {
+        console.error("Gagal mengambil data:", error.message);
+        tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-red-500 font-medium"><i class="fa-solid fa-triangle-exclamation mr-2"></i> Error: ${error.message}</td></tr>`;
+    }
+}
+
+// Render Data array ke elemen baris tabel HTML
+function renderTabelPegawai(listPegawai) {
+    const tbody = document.getElementById('tabel-pegawai-body');
+    if (!tbody) return;
+
+    if (listPegawai.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="p-12 text-center text-gray-400 font-medium"><i class="fa-solid fa-box-open text-2xl block mb-2 text-gray-300"></i> Tidak ada data pegawai ditemukan.</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = listPegawai.map(p => {
+        const inisial = p.nama ? p.nama.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase() : '??';
+        
+        // Atur warna label badge status kepegawaian
+        let statusBadgeColor = 'bg-gray-50 text-gray-700 border-gray-200';
+        if (p.status === 'AKTIF') statusBadgeColor = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+        else if (['PENSIUN', 'PENSIUN DINI'].includes(p.status)) statusBadgeColor = 'bg-amber-50 text-amber-700 border-amber-200';
+        else if (p.status === 'MENGUNDURKAN DIRI') statusBadgeColor = 'bg-red-50 text-red-700 border-red-200';
+
+        return `
+            <tr class="hover:bg-gray-50/50 transition">
+                <td class="p-4">
+                    <div class="flex items-center gap-3">
+                        <div class="h-9 w-9 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-xs">${inisial}</div>
+                        <div>
+                            <p class="font-semibold text-gray-900">${p.nama || '-'}</p>
+                            <p class="text-xs text-gray-400 font-mono">${p.email || '-'}</p>
+                        </div>
+                    </div>
+                </td>
+                <td class="p-4">
+                    <p class="font-mono text-xs text-gray-900 font-medium">${p.nip ? 'NIP: ' + p.nip : 'NIP: -'}</p>
+                    <p class="font-mono text-xs text-gray-400">NIK: ${p.nik || '-'}</p>
+                </td>
+                <td class="p-4">
+                    <p class="font-medium text-gray-800">${p.jabatan || '-'}</p>
+                    <p class="text-xs text-gray-500">${p.golongan || '-'}</p>
+                </td>
+                <td class="p-4">
+                    <p class="font-medium text-gray-700">${p.kelompok || '-'}</p>
+                    <p class="text-xs text-gray-400">${p.kelompok_jabatan || '-'}</p>
+                </td>
+                <td class="p-4">
+                    <span class="px-2.5 py-0.5 border ${statusBadgeColor} rounded-full text-xs font-semibold">${p.status || 'AKTIF'}</span>
+                </td>
+                <td class="p-4 text-center">
+                    <div class="flex items-center justify-center gap-1.5">
+                        <button onclick="viewDetailPegawai('${p.id}')" title="Lihat Detail" class="p-1.5 text-gray-500 hover:text-gray-800 hover:bg-gray-100 rounded-md transition cursor-pointer"><i class="fa-solid fa-eye"></i></button>
+                        <button onclick="editPegawaiData('${p.id}')" title="Edit Data" class="p-1.5 text-blue-600 hover:bg-blue-50 rounded-md transition cursor-pointer"><i class="fa-solid fa-pen-to-square"></i></button>
+                        <button onclick="hapusPegawaiData('${p.id}', '${p.nama}')" title="Hapus Data" class="p-1.5 text-red-600 hover:bg-red-50 rounded-md transition cursor-pointer"><i class="fa-solid fa-trash-can"></i></button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+// 2. Kirim Data (CREATE & UPDATE)
+function initFormSubmitListener() {
+    const form = document.getElementById('form-pegawai-supabase');
+    if (!form) return;
+
+    form.onsubmit = async (e) => {
+        e.preventDefault();
+        
+        // Memetakan input value dari DOM Form ke struktur field database Supabase
+        const payload = {
+            nama: document.getElementById('p_nama').value,
+            nik: document.getElementById('p_nik').value,
+            nip: document.getElementById('p_nip').value,
+            status: document.getElementById('p_status').value,
+            golongan: document.getElementById('p_gol').value,
+            jabatan: document.getElementById('p_jabatan').value,
+            jenis_kelamin: document.getElementById('p_jenis_kelamin').value,
+            agama: document.getElementById('p_agama').value,
+            ruangan: document.getElementById('p_ruangan').value,
+            tmt_pangkat: document.getElementById('p_tmt_pangkat').value || null,
+            tmt_berikutnya: document.getElementById('p_tmt_berikutnya').value || null,
+            tmt_cpns: document.getElementById('p_tmt_cpns').value || null,
+            masuk_rs: document.getElementById('p_masuk_rs').value || null,
+            masa_kerja_rs: document.getElementById('p_masa_kerja_rs').value,
+            rentang_bup: document.getElementById('p_rentang_bup').value ? parseInt(document.getElementById('p_rentang_bup').value, 10) : null,
+            tmt_pensiun: document.getElementById('p_tmt_pensiun').value || null,
+            tempat_lahir: document.getElementById('p_tempat_lahir').value,
+            tanggal_lahir: document.getElementById('p_tanggal_lahir').value || null,
+            status_pernikahan: document.getElementById('p_status_keluarga').value,
+            nama_pasangan: document.getElementById('p_nama_pasangan').value,
+            jumlah_anak: parseInt(document.getElementById('p_jumlah_anak').value, 10) || 0,
+            alamat: document.getElementById('p_alamat').value,
+            jenjang_pendidikan: document.getElementById('p_jenjang').value,
+            fakultas: document.getElementById('p_fakultas').value,
+            jurusan: document.getElementById('p_jurusan').value,
+            kelompok: document.getElementById('p_kelompok').value,
+            kelompok_jabatan: document.getElementById('p_kelompok_jabatan').value,
+            no_bpjs_kesehatan: document.getElementById('p_no_bpjsn').value,
+            no_bpjs_ket_taspen: document.getElementById('p_no_bpjsket_taspen').value,
+            npwp: document.getElementById('p_npwp').value,
+            email: document.getElementById('p_email').value,
+            no_telp: document.getElementById('p_no_telp').value
+        };
+
+        try {
+            let response;
+            
+            if (EDIT_MODE_ID) {
+                // Jika EDIT_MODE_ID terisi, lakukan UPDATE data
+                response = await supabase
+                    .from('pegawai')
+                    .update(payload)
+                    .eq('id', EDIT_MODE_ID);
+            } else {
+                // Jika tidak ada ID, lakukan INSERT data baru
+                response = await supabase
+                    .from('pegawai')
+                    .insert([payload]);
+            }
+
+            if (response.error) throw response.error;
+
+            alert(EDIT_MODE_ID ? "Data pegawai berhasil diperbarui!" : "Pegawai baru berhasil ditambahkan!");
+            closeTambahPegawaiModal();
+            fetchPegawaiDariSupabase(); // Reload isi tabel secara otomatis
+
+        } catch (error) {
+            console.error("Proses simpan gagal:", error.message);
+            alert("Terjadi masalah saat menyimpan data: " + error.message);
+        }
+    };
+}
+
+// 3. Hapus Data (DELETE)
+async function hapusPegawaiData(id, nama) {
+    if (!confirm(`Apakah Anda benar-benar yakin ingin menghapus data pegawai "${nama}"?`)) return;
+
+    try {
+        const { error } = await supabase
+            .from('pegawai')
+            .delete()
+            .eq('id', id);
+
+        if (error) throw error;
+
+        alert("Data pegawai terhapus.");
+        fetchPegawaiDariSupabase(); // Refresh isi tabel
+    } catch (error) {
+        alert("Gagal menghapus data: " + error.message);
+    }
+}
+
+// --- ACTION LOGICS (VIEW & EDIT FILLER) ---
+
+// Aksi Tampilkan Detail (VIEW)
+function viewDetailPegawai(id) {
+    const pegawai = DATA_PEGAWAI_LOCAL.find(p => p.id === id);
+    if (!pegawai) return;
+
+    const contentArea = document.getElementById('view-modal-content');
+    if (!contentArea) return;
+
+    contentArea.innerHTML = `
+        <div class="grid grid-cols-2 gap-4 border-b border-gray-100 pb-3">
+            <div><span class="text-gray-400 block font-medium">Nama Lengkap</span> <strong class="text-sm text-gray-900">${pegawai.nama || '-'}</strong></div>
+            <div><span class="text-gray-400 block font-medium">Jenis Kelamin / Agama</span> <span class="text-gray-800 font-semibold">${pegawai.jenis_kelamin || '-'} / ${pegawai.agama || '-'}</span></div>
+            <div><span class="text-gray-400 block font-medium">NIP</span> <span class="font-mono text-gray-900 font-medium">${pegawai.nip || '-'}</span></div>
+            <div><span class="text-gray-400 block font-medium">NIK (KTP)</span> <span class="font-mono text-gray-900 font-medium">${pegawai.nik || '-'}</span></div>
+        </div>
+        <div class="grid grid-cols-3 gap-4 border-b border-gray-100 pb-3">
+            <div><span class="text-gray-400 block font-medium">Status Pegawai</span> <strong class="text-blue-600">${pegawai.status || '-'}</strong></div>
+            <div><span class="text-gray-400 block font-medium">Golongan</span> <span class="text-gray-800 font-semibold">${pegawai.golongan || '-'}</span></div>
+            <div><span class="text-gray-400 block font-medium">Jabatan</span> <span class="text-gray-800 font-semibold">${pegawai.jabatan || '-'}</span></div>
+            <div><span class="text-gray-400 block font-medium">Kelompok</span> <span class="text-gray-800 font-semibold">${pegawai.kelompok || '-'}</span></div>
+            <div><span class="text-gray-400 block font-medium">Kelompok Jabatan</span> <span class="text-gray-800 font-semibold">${pegawai.kelompok_jabatan || '-'}</span></div>
+            <div><span class="text-gray-400 block font-medium">Ruangan</span> <span class="text-gray-800 font-semibold">${pegawai.ruangan || '-'}</span></div>
+        </div>
+        <div class="grid grid-cols-2 gap-4 border-b border-gray-100 pb-3">
+            <div><span class="text-gray-400 block font-medium">TMT CPNS</span> <span class="text-gray-800 font-medium">${pegawai.tmt_cpns || '-'}</span></div>
+            <div><span class="text-gray-400 block font-medium">Masa Kerja Rumah Sakit</span> <strong class="text-emerald-700">${pegawai.masa_kerja_rs || '-'}</strong></div>
+            <div><span class="text-gray-400 block font-medium">TMT Pensiun (BUP ${pegawai.rentang_bup || '-'} Thn)</span> <span class="text-gray-800 font-medium">${pegawai.tmt_pensiun || '-'}</span></div>
+            <div><span class="text-gray-400 block font-medium">Kontak HP / Email</span> <span class="text-gray-800 font-medium">${pegawai.no_telp || '-'} / ${pegawai.email || '-'}</span></div>
+        </div>
+        <div>
+            <span class="text-gray-400 block font-medium">Alamat Tinggal</span>
+            <span class="text-gray-800">${pegawai.alamat || '-'}</span>
+        </div>
+    `;
+
+    document.getElementById('modal-view-pegawai').classList.remove('hidden');
+}
+
+// Persiapan Form untuk Pengubahan (EDIT)
+function editPegawaiData(id) {
+    const p = DATA_PEGAWAI_LOCAL.find(item => item.id === id);
+    if (!p) return;
+
+    EDIT_MODE_ID = id; // Nyalakan flag mode edit ke ID ini
+
+    // Ubah judul dan teks tombol di modal form
+    document.getElementById('modal-title').innerHTML = `<i class="fa-solid fa-user-pen text-amber-500"></i> Ubah / Edit Data Pegawai`;
     
+    // Inject seluruh value dari record database ke dalam elemen form
+    document.getElementById('p_nama').value = p.nama || "";
+    document.getElementById('p_nik').value = p.nik || "";
+    document.getElementById('p_nip').value = p.nip || "";
+    document.getElementById('p_status').value = p.status || "AKTIF";
+    document.getElementById('p_gol').value = p.golongan || "Pembina / IV/a";
+    document.getElementById('p_jabatan').value = p.jabatan || "";
+    document.getElementById('p_jenis_kelamin').value = p.jenis_kelamin || "Laki-laki";
+    document.getElementById('p_agama').value = p.agama || "ISLAM";
+    document.getElementById('p_ruangan').value = p.ruangan || "";
+    document.getElementById('p_tmt_pangkat').value = p.tmt_pangkat || "";
+    document.getElementById('p_tmt_berikutnya').value = p.tmt_berikutnya || "";
+    document.getElementById('p_tmt_cpns').value = p.tmt_cpns || "";
+    document.getElementById('p_masuk_rs').value = p.masuk_rs || "";
+    document.getElementById('p_masa_kerja_rs').value = p.masa_kerja_rs || "";
+    document.getElementById('p_rentang_bup').value = p.rentang_bup || "";
+    document.getElementById('p_tmt_pensiun').value = p.tmt_pensiun || "";
+    document.getElementById('p_tempat_lahir').value = p.tempat_lahir || "";
+    document.getElementById('p_tanggal_lahir').value = p.tanggal_lahir || "";
+    document.getElementById('p_status_keluarga').value = p.status_pernikahan || "Belum Kawin";
+    document.getElementById('p_nama_pasangan').value = p.nama_pasangan || "";
+    document.getElementById('p_jumlah_anak').value = p.jumlah_anak || 0;
+    document.getElementById('p_alamat').value = p.alamat || "";
+    document.getElementById('p_jenjang').value = p.jenjang_pendidikan || "";
+    document.getElementById('p_fakultas').value = p.fakultas || "";
+    document.getElementById('p_jurusan').value = p.jurusan || "";
+    document.getElementById('p_kelompok').value = p.kelompok || "ASN";
+    document.getElementById('p_kelompok_jabatan').value = p.kelompok_jabatan || "MANAGEMENT";
+    document.getElementById('p_no_bpjsn').value = p.no_bpjs_kesehatan || "";
+    document.getElementById('p_no_bpjsket_taspen').value = p.no_bpjs_ket_taspen || "";
+    document.getElementById('p_npwp').value = p.npwp || "";
+    document.getElementById('p_email').value = p.email || "";
+    document.getElementById('p_no_telp').value = p.no_telp || "";
+
+    // Tampilkan modal yang kini berfungsi sebagai form edit
+    document.getElementById('modal-pegawai').classList.remove('hidden');
+}
+
+// Fungsi live-search lokal untuk menyaring isi tabel tanpa re-fetch database
+function handleCariPegawai(keyword) {
+    const key = keyword.toLowerCase();
+    const hasilSaring = DATA_PEGAWAI_LOCAL.filter(p => 
+        (p.nama && p.nama.toLowerCase().includes(key)) ||
+        (p.nip && p.nip.includes(key)) ||
+        (p.nik && p.nik.includes(key))
+    );
+    renderTabelPegawai(hasilSaring);
+}
+
+// --- AUTOMATION FORM CALCULATIONS ---
+function hitungTmtCpnsDariNip(nipValue) {
+    const cleanNip = nipValue.replace(/\s+/g, '');
+    const targetInput = document.getElementById('p_tmt_cpns');
     if (!targetInput) return;
 
-    // Pola NIP: YYYYMMDD YYYYMM X XXX (Total 18 Angka)
-    // Angka ke-9 s/d 14 melambangkan Tahun & Bulan CPNS (Index ke-8 hingga ke-13)
     if (cleanNip.length >= 14) {
-        const tahunStr = cleanNip.substring(8, 12); // Ambil 4 angka Tahun pengangkatan
-        const bulanStr = cleanNip.substring(12, 14); // Ambil 2 angka Bulan pengangkatan
-        const tanggalStr = "01"; // Standar TMT CPNS biasanya ditetapkan per tanggal 1
-        
-        // Format standar input type="date" adalah YYYY-MM-DD
-        targetInput.value = `${tahunStr}-${bulanStr}-${tanggalStr}`;
+        const tahunStr = cleanNip.substring(8, 12);
+        const bulanStr = cleanNip.substring(12, 14);
+        targetInput.value = `${tahunStr}-${bulanStr}-01`;
     } else {
         targetInput.value = "";
     }
 }
 
-// 2. Kalkulasi Masa Kerja Rumah Sakit Dinamis (Tahun, Bulan, Hari)
 function hitungMasaKerjaRs(tanggalMasukStr) {
     const targetInput = document.getElementById('p_masa_kerja_rs');
     if (!targetInput || !tanggalMasukStr) return;
 
     const tglMasuk = new Date(tanggalMasukStr);
     const tglSekarang = new Date();
-
-    if (tglMasuk > tglSekarang) {
-        targetInput.value = "Tanggal masuk tidak boleh melebihi hari ini";
-        return;
-    }
+    if (tglMasuk > tglSekarang) { targetInput.value = "Format Tanggal Salah"; return; }
 
     let tahun = tglSekarang.getFullYear() - tglMasuk.getFullYear();
     let bulan = tglSekarang.getMonth() - tglMasuk.getMonth();
     let hari = tglSekarang.getDate() - tglMasuk.getDate();
 
-    // Penyesuaian jika hitungan hari minus
     if (hari < 0) {
         bulan--;
-        // Ambil jumlah hari pada bulan sebelumnya
         const bulanLalu = new Date(tglSekarang.getFullYear(), tglSekarang.getMonth(), 0).getDate();
         hari += bulanLalu;
     }
-
-    // Penyesuaian jika hitungan bulan minus
-    if (bulan < 0) {
-        tahun--;
-        bulan += 12;
-    }
-
+    if (bulan < 0) { tahun--; bulan += 12; }
     targetInput.value = `${tahun} TAHUN ${bulan} BULAN ${hari} HARI`;
 }
 
-// 3. Kalkulasi TMT Pensiun Otomatis (Tanggal Lahir + BUP -> Tanggal 1 Bulan Berikutnya)
 function hitungTmtPensiun() {
     const tglLahirStr = document.getElementById('p_tanggal_lahir').value;
     const bupStr = document.getElementById('p_rentang_bup').value;
     const targetInput = document.getElementById('p_tmt_pensiun');
 
-    if (!targetInput) return;
-    
-    // Jika salah satu kolom belum diisi, kosongkan target
-    if (!tglLahirStr || !bupStr) {
-        targetInput.value = "";
-        return;
-    }
+    if (!targetInput || !tglLahirStr || !bupStr) { if(targetInput) targetInput.value = ""; return; }
 
     const tglLahir = new Date(tglLahirStr);
-    const bupTahun = parseInt(bupStr, 10);
+    let tahunPensiun = tglLahir.getFullYear() + parseInt(bupStr, 10);
+    let bulanPensiun = tglLahir.getMonth() + 1;
 
-    // Tambahkan tahun kelahiran dengan Usia BUP
-    let tahunPensiun = tglLahir.getFullYear() + bupTahun;
-    let bulanPensiun = tglLahir.getMonth(); // 0 = Januari, 11 = Desember
+    if (bulanPensiun > 11) { bulanPensiun = 0; tahunPensiun += 1; }
 
-    // Lompat ke 1 bulan berikutnya
-    bulanPensiun += 1;
-
-    // Jika bulan melampaui Desember (Index 11), gulung tahun ke depan
-    if (bulanPensiun > 11) {
-        bulanPensiun = 0; // Set ke Januari
-        tahunPensiun += 1; // Tahun bertambah 1
-    }
-
-    // Format string menjadi YYYY-MM-DD dengan tanggal selalu terkunci "01"
-    const mm = String(bulanPensiun + 1).padStart(2, '0'); // +1 karena objek Date javascript start dari 0
-    const yyyy = tahunPensiun;
-    const dd = "01";
-
-    targetInput.value = `${yyyy}-${mm}-${dd}`;
+    const mm = String(bulanPensiun + 1).padStart(2, '0');
+    targetInput.value = `${tahunPensiun}-${mm}-01`;
 }
 
-// --- CONTROLLER ACTIONS UNTUK MODAL ---
+// --- CONTROLLER OPEN / CLOSE MODAL ---
 function openTambahPegawaiModal() {
+    EDIT_MODE_ID = null; // Reset ke mode insert data baru
+    document.getElementById('form-pegawai-supabase').reset();
+    document.getElementById('modal-title').innerHTML = `<i class="fa-solid fa-id-card-clip text-blue-600"></i> Formulir Biodata Pegawai`;
     const modal = document.getElementById('modal-pegawai');
     if (modal) modal.classList.remove('hidden');
 }
 
 function closeTambahPegawaiModal() {
     const modal = document.getElementById('modal-pegawai');
+    if (modal) modal.classList.add('hidden');
+}
+
+function closeViewPegawaiModal() {
+    const modal = document.getElementById('modal-view-pegawai');
     if (modal) modal.classList.add('hidden');
 }
