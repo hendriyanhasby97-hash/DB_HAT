@@ -731,7 +731,6 @@ async function hapusPegawai(id, nama) {
 // =======================================================
 // EXPORT UNTUK WINDOW GLOBAL SCOPE (Mencegah Error Router)
 // =======================================================
-window.renderDaftarPegawaiComponent = renderDaftarPegawaiComponent;
 window.tampilkanDetailPegawai = tampilkanDetailPegawai;
 window.renderDaftarPegawaiComponent = renderDaftarPegawaiComponent;
 window.autoHitungTmtCpns = autoHitungTmtCpns;
