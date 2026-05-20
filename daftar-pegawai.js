@@ -189,11 +189,11 @@ function renderDaftarPegawaiComponent() {
                             </div>
                             <div>
                                 <label class="block text-xs font-semibold text-gray-700 mb-1">Rentang BUP (Usia Pensiun)</label>
-                                <input type="number" id="p_rentang_bup" placeholder="e.g. 58 atau 60" class="w-full rounded-lg border border-gray-300 p-2 outline-none">
+                                <input type="number" id="p_rentang_bup" placeholder="e.g. 58 atau 60" class="w-full rounded-lg border border-gray-300 p-2 outline-none" oninput="hitungTmtPensiun()">
                             </div>
                             <div>
-                                <label class="block text-xs font-semibold text-gray-700 mb-1">TMT Pensiun</label>
-                                <input type="date" id="p_tmt_pensiun" class="w-full rounded-lg border border-gray-300 p-2 outline-none">
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">TMT Pensiun <span class="text-blue-600 font-bold">(Otomatis Tgl 1)</span></label>
+                                <input type="date" id="p_tmt_pensiun" readonly class="w-full rounded-lg border border-gray-100 bg-gray-100 p-2 outline-none text-gray-600 font-medium">
                             </div>
                         </div>
                     </div>
@@ -208,7 +208,7 @@ function renderDaftarPegawaiComponent() {
                             </div>
                             <div>
                                 <label class="block text-xs font-semibold text-gray-700 mb-1">Tanggal Lahir</label>
-                                <input type="date" id="p_tanggal_lahir" class="w-full rounded-lg border border-gray-300 p-2 outline-none">
+                                <input type="date" id="p_tanggal_lahir" class="w-full rounded-lg border border-gray-300 p-2 outline-none" onchange="hitungTmtPensiun()">
                             </div>
                             <div>
                                 <label class="block text-xs font-semibold text-gray-700 mb-1">Status Pernikahan</label>
@@ -374,6 +374,44 @@ function hitungMasaKerjaRs(tanggalMasukStr) {
     }
 
     targetInput.value = `${tahun} TAHUN ${bulan} BULAN ${hari} HARI`;
+}
+
+// 3. Kalkulasi TMT Pensiun Otomatis (Tanggal Lahir + BUP -> Tanggal 1 Bulan Berikutnya)
+function hitungTmtPensiun() {
+    const tglLahirStr = document.getElementById('p_tanggal_lahir').value;
+    const bupStr = document.getElementById('p_rentang_bup').value;
+    const targetInput = document.getElementById('p_tmt_pensiun');
+
+    if (!targetInput) return;
+    
+    // Jika salah satu kolom belum diisi, kosongkan target
+    if (!tglLahirStr || !bupStr) {
+        targetInput.value = "";
+        return;
+    }
+
+    const tglLahir = new Date(tglLahirStr);
+    const bupTahun = parseInt(bupStr, 10);
+
+    // Tambahkan tahun kelahiran dengan Usia BUP
+    let tahunPensiun = tglLahir.getFullYear() + bupTahun;
+    let bulanPensiun = tglLahir.getMonth(); // 0 = Januari, 11 = Desember
+
+    // Lompat ke 1 bulan berikutnya
+    bulanPensiun += 1;
+
+    // Jika bulan melampaui Desember (Index 11), gulung tahun ke depan
+    if (bulanPensiun > 11) {
+        bulanPensiun = 0; // Set ke Januari
+        tahunPensiun += 1; // Tahun bertambah 1
+    }
+
+    // Format string menjadi YYYY-MM-DD dengan tanggal selalu terkunci "01"
+    const mm = String(bulanPensiun + 1).padStart(2, '0'); // +1 karena objek Date javascript start dari 0
+    const yyyy = tahunPensiun;
+    const dd = "01";
+
+    targetInput.value = `${yyyy}-${mm}-${dd}`;
 }
 
 // --- CONTROLLER ACTIONS UNTUK MODAL ---
