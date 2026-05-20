@@ -1,5 +1,5 @@
 /**
- * LOGIN.JS - Sistem Otentikasi Pegawai (NIK & Password)
+ * LOGIN.JS - Sistem Otentikasi Karyawan & Super Admin
  */
 
 // Cek status login saat file pertama kali dimuat
@@ -44,7 +44,7 @@ function renderHalamanLogin() {
                     <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Nomor Induk Karyawan (NIK)</label>
                     <div class="relative">
                         <i class="fa-solid fa-id-card absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
-                        <input type="text" id="login-nik" required placeholder="Masukkan NIK Anda" class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono transition-all">
+                        <input type="text" id="login-nik" required placeholder="Masukkan NIK atau admin" class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono transition-all">
                     </div>
                 </div>
 
@@ -66,12 +66,11 @@ function renderHalamanLogin() {
     `;
 }
 
-// Logika Validasi Login ke Supabase
+// Logika Validasi Login ke Supabase + Cek Akun Super Admin Bawaan
 async function handleProsesLogin(event) {
     event.preventDefault();
     const btn = document.getElementById('btn-login');
     const errorBox = document.getElementById('login-error-msg');
-    const errorText = document.getElementById('error-text');
     
     const inputNik = document.getElementById('login-nik').value.trim();
     const inputPassword = document.getElementById('login-password').value;
@@ -88,9 +87,23 @@ async function handleProsesLogin(event) {
         return;
     }
 
+    // ========================================================
+    // LOGIKA SUPER ADMIN BYPASS (SAAT DATABASES MASIH KOSONG)
+    // ========================================================
+    if (inputNik.toLowerCase() === "admin" || inputNik === "12345") {
+        localStorage.setItem('simpeg_session', JSON.stringify({
+            id: "0000-SUPER-ADMIN",
+            nama: "Super Admin SIMPEG",
+            nip: "ADMINISTRATOR",
+            jabatan: "Sistem Eksekutif"
+        }));
+        
+        window.location.reload();
+        return; // Hentikan eksekusi pencarian ke database
+    }
+
+    // 2. Jika bukan admin, cari data NIK/NIP asli di tabel 'pegawai' Supabase Anda
     try {
-        // 2. Cari apakah NIK terdaftar di tabel 'pegawai' Supabase Anda
-        // Catatan: Jika di tabel Anda nama kolomnya 'nip', ubah '.eq('nip', inputNik)'
         const { data, error } = await supabase
             .from('pegawai')
             .select('*')
@@ -100,7 +113,6 @@ async function handleProsesLogin(event) {
         if (error) throw error;
 
         if (data) {
-            // NIK Cocok & Ditemukan! Simpan sesi login ke browser local storage
             localStorage.setItem('simpeg_session', JSON.stringify({
                 id: data.id,
                 nama: data.nama,
@@ -108,15 +120,14 @@ async function handleProsesLogin(event) {
                 jabatan: data.jabatan
             }));
             
-            // Reload halaman untuk masuk ke dashboard utama
             window.location.reload();
         } else {
-            tampilkanLoginError("Akses ditolak. NIK Anda belum terdaftar di sistem.");
+            tampilkanLoginError("Akses ditolak. NIK tidak ditemukan & database kosong.");
             kembalikanTombolLogin();
         }
     } catch (err) {
         console.error(err);
-        tampilkanLoginError("Masalah Koneksi: " + err.message);
+        tampilkanLoginError("Masalah Koneksi Supabase: " + err.message);
         kembalikanTombolLogin();
     }
 }
