@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Login Multi-Role Kepegawaian</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="auth.js"></script>
+
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --dark-slate: #0f172a;
+            --bg-light: #f1f5f9;
+            --border-color: #e2e8f0;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+        body { background: var(--bg-light); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+
+        .login-card { background: white; width: 100%; max-width: 420px; border-radius: 16px; padding: 40px 35px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05); border: 1px solid var(--border-color); }
+        .login-header { text-align: center; margin-bottom: 30px; }
+        .login-header i { color: var(--primary); font-size: 40px; margin-bottom: 12px; }
+        .login-header h2 { font-size: 22px; font-weight: 800; color: var(--dark-slate); }
+        .login-header p { font-size: 13px; color: #64748b; margin-top: 4px; }
+
+        .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 20px; }
+        .form-group label { font-size: 12px; font-weight: 700; color: #475569; text-transform: uppercase; }
+        .input-wrapper { position: relative; }
+        .input-wrapper i { position: absolute; left: 14px; top: 13px; color: #94a3b8; }
+        .form-control { width: 100%; padding: 11px 14px 11px 40px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; outline: none; background: #f8fafc; }
+        .form-control:focus { border-color: var(--primary); background: white; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
+
+        .btn-login { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s; margin-top: 10px; }
+        .btn-login:hover { background: var(--primary-dark); }
+        .btn-login:disabled { background: #cbd5e1; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+
+    <div class="login-card">
+        <div class="login-header">
+            <i class="fa-solid fa-shield-halved"></i>
+            <h2>Portal Log Masuk</h2>
+            <p>Masukkan Kredensial Akun Pengguna Kepegawaian</p>
+        </div>
+
+        <form id="form-login-sistem" onsubmit="prosesAutentikasiSistem(event)">
+            <div class="form-group">
+                <label>Username / NIK Karyawan</label>
+                <div class="input-wrapper">
+                    <i class="fa-solid fa-user"></i>
+                    <input type="text" id="login-username" class="form-control" placeholder="Ketik Username atau NIK Anda" required autocomplete="username">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Kata Sandi (Password)</label>
+                <div class="input-wrapper">
+                    <i class="fa-solid fa-lock"></i>
+                    <input type="password" id="login-password" class="form-control" placeholder="••••••••" required autocomplete="current-password">
+                </div>
+            </div>
+
+            <button type="submit" id="btn-submit-login" class="btn-login">
+                <i class="fa-solid fa-right-to-bracket"></i> Masuk Ke Sistem
+            </button>
+        </form>
+    </div>
+
+    <script>
+        async function prosesAutentikasiSistem(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btn-submit-login');
+            const userInput = document.getElementById('login-username').value.trim();
+            const passInput = document.getElementById('login-password').value.trim();
+
+            btn.disabled = true;
+            btn.innerHTML = "<i class='fa-solid fa-spinner fa-spin'></i> Memverifikasi...";
+
+            try {
+                // 🔒 AKSI 1: Validasi Akses Tingkat Administrator Terpusat
+                if (userInput.toLowerCase() === "superadmin" && passInput === "super123") {
+                    sessionStorage.setItem('role', 'superadmin');
+                    sessionStorage.setItem('user_key', 'SUPER-ADMIN-KEY');
+                    alert("Selamat Datang Super Admin! Otoritas penuh diberikan.");
+                    window.location.href = "index.html";
+                    return;
+                } 
+                else if (userInput.toLowerCase() === "admin" && passInput === "admin123") {
+                    sessionStorage.setItem('role', 'admin');
+                    sessionStorage.setItem('user_key', 'ADMIN-READ-ONLY');
+                    alert("Selamat Datang Admin! Hak akses pembacaan berkas aktif.");
+                    window.location.href = "index.html";
+                    return;
+                }
+
+                // 🔒 AKSI 2: Validasi Akses Tingkat Karyawan (Menggunakan objek global 'supabase' dari auth.js)
+                const { data: pegawai, error } = await supabase
+                    .from('pegawai')
+                    .select('id_pegawai, nik, nama, password')
+                    .eq('nik', userInput)
+                    .maybeSingle();
+
+                if (error) throw error;
+
+                if (pegawai) {
+                    const passwordValid = pegawai.password ? pegawai.password.trim() : pegawai.nik.trim();
+                    
+                    if (passInput === passwordValid) {
+                        sessionStorage.setItem('role', 'pegawai');
+                        sessionStorage.setItem('user_key', pegawai.id_pegawai);
+                        alert(`Login Sukses! Selamat datang di Portal Mandiri, ${pegawai.nama}.`);
+                        window.location.href = "index-pegawai.html";
+                        return;
+                    }
+                }
+
+                alert("⚠️ Kredensial salah! NIK tidak terdaftar atau kata sandi tidak cocok.");
+
+            } catch (err) {
+                console.error(err);
+                alert("Gagal menghubungi server keamanan database.");
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = "<i class='fa-solid fa-right-to-bracket'></i> Masuk Ke Sistem";
+            }
+        }
+    </script>
+</body>
+</html>
