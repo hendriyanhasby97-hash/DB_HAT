@@ -371,6 +371,12 @@ function renderDaftarPegawaiComponent() {
             </div>
         </div>
     `;
+    <div id="modal-detail-pegawai" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+    <div class="bg-white rounded-2xl w-full max-w-sm p-6 relative">
+        <button onclick="document.getElementById('modal-detail-pegawai').classList.add('hidden')" class="absolute top-4 right-4 text-slate-400"><i class="fa-solid fa-xmark"></i></button>
+        <div id="modal-detail-content"></div>
+    </div>
+</div>
 }
 
 // =======================================================
