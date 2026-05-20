@@ -367,6 +367,45 @@ function autoKalkulasiMasaKerja() {
 
     infoMasaKerja.value = `${tahunDiff} TAHUN ${bulanDiff} BULAN ${hariDiff} HARI`;
 }
+function autoHitungTmtPensiun() {
+    const tanggalLahirStr = document.getElementById('form-tanggal-lahir').value;
+    const bupInput = document.getElementById('form-rentang-bup').value;
+    const tmtPensiunInput = document.getElementById('form-tmt-pensiun');
+
+    // Jika tanggal lahir atau rentang BUP belum diisi, kosongkan TMT Pensiun
+    if (!tanggalLahirStr || !bupInput) {
+        tmtPensiunInput.value = "";
+        return;
+    }
+
+    const bupTahun = parseInt(bupInput);
+    if (isNaN(bupTahun) || bupTahun <= 0) {
+        tmtPensiunInput.value = "";
+        return;
+    }
+
+    const lahir = new Date(tanggalLahirStr);
+    
+    // 1. Hitung tahun saat menyentuh usia pensiun
+    let tahunPensiun = lahir.getFullYear() + bupTahun;
+    let bulanPensiun = lahir.getMonth(); // 0 = Januari, 1 = Februari, dst.
+
+    // 2. Rumus Administrasi: TMT Pensiun adalah tanggal 1 di bulan BERIKUTNYA
+    // Kita naikkan bulannya sebesar +1
+    bulanPensiun = bulanPensiun + 1;
+
+    // Jika bulan menjadi 12 (artinya lahir di bulan Desember), maka maju ke Januari tahun depan
+    if (bulanPensiun > 11) {
+        bulanPensiun = 0;
+        tahunPensiun = tahunPensiun + 1;
+    }
+
+    // Format ke string YYYY-MM-DD dengan tanggal selalu "01"
+    const mm = String(bulanPensiun + 1).padStart(2, '0');
+    const yyyy = tahunPensiun;
+    
+    tmtPensiunInput.value = `${yyyy}-${mm}-01`;
+}
 
 // Tarik data dari tabel: daftar_pegawai
 async function querySemuaPegawai() {
