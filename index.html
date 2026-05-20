@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistem Manajemen Pegawai</title>
+    <title>Sistem Informasi Kepegawaian (SIMPEG)</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome CDN untuk Ikon -->
@@ -11,9 +11,8 @@
 </head>
 <body class="bg-slate-100 font-sans text-slate-800 antialiased">
 
-    <!-- CONTAINER UTAMA -->
     <div class="min-h-screen flex flex-col">
-        <!-- Navbar -->
+        <!-- NAVBAR UTAMA -->
         <header class="bg-white border-b border-gray-200 sticky top-0 z-40 shadow-xs">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
                 <div class="flex items-center gap-3">
@@ -25,43 +24,115 @@
                         <p class="text-xs text-gray-500">Sistem Informasi Kepegawaian</p>
                     </div>
                 </div>
+                <!-- Indikator Koneksi Database -->
+                <div class="flex items-center gap-2 text-xs font-semibold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-200">
+                    <span class="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    Supabase Connected
+                </div>
             </div>
         </header>
 
-        <!-- Main Content Area -->
-        <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <!-- Tempat Komponen JavaScript Merender Tampilan -->
-            <div id="app-root">
-                <!-- Loader bawaan sebelum script selesai dimuat -->
-                <div class="flex flex-col items-center justify-center py-20 text-gray-400">
-                    <i class="fa-solid fa-circle-notch fa-spin text-3xl mb-3 text-blue-600"></i>
-                    <p class="text-sm font-medium">Menginisialisasi sistem...</p>
+        <!-- KONTEN UTAMA -->
+        <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+            
+            <!-- WIDGET RINGKASAN / STATISTIK (DASHBOARD LAMA) -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <!-- Total Pegawai -->
+                <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-xs flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Total Pegawai</p>
+                        <h3 id="stat-total-pegawai" class="text-2xl font-black text-gray-900 mt-1">0</h3>
+                    </div>
+                    <div class="h-12 w-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl shadow-xs border border-blue-100">
+                        <i class="fa-solid fa-users"></i>
+                    </div>
+                </div>
+
+                <!-- Pegawai Aktif -->
+                <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-xs flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Pegawai Aktif</p>
+                        <h3 id="stat-pegawai-aktif" class="text-2xl font-black text-emerald-600 mt-1">0</h3>
+                    </div>
+                    <div class="h-12 w-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl shadow-xs border border-emerald-100">
+                        <i class="fa-solid fa-user-check"></i>
+                    </div>
+                </div>
+
+                <!-- Kelompok ASN -->
+                <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-xs flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Kelompok ASN</p>
+                        <h3 id="stat-pegawai-asn" class="text-2xl font-black text-purple-600 mt-1">0</h3>
+                    </div>
+                    <div class="h-12 w-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-xl shadow-xs border border-purple-100">
+                        <i class="fa-solid fa-user-shield"></i>
+                    </div>
+                </div>
+
+                <!-- Non-Aktif / Lainnya -->
+                <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-xs flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Kelompok BLUD/Lainnya</p>
+                        <h3 id="stat-pegawai-blud" class="text-2xl font-black text-amber-600 mt-1">0</h3>
+                    </div>
+                    <div class="h-12 w-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl shadow-xs border border-amber-100">
+                        <i class="fa-solid fa-user-clock"></i>
+                    </div>
                 </div>
             </div>
+
+            <!-- AREA UTAMA TEMPAT TABEL DAN FORM BERADA -->
+            <div id="app-root" class="space-y-6">
+                <!-- Animasi Loading saat Aplikasi pertama kali dimuat -->
+                <div class="flex flex-col items-center justify-center py-20 text-gray-400 bg-white rounded-xl border border-gray-200">
+                    <i class="fa-solid fa-circle-notch fa-spin text-3xl mb-3 text-blue-600"></i>
+                    <p class="text-sm font-medium text-gray-500">Sinkronisasi database Supabase...</p>
+                </div>
+            </div>
+
         </main>
     </div>
 
-    <!-- ========================================== -->
-    <!-- SCRIPT MANAGEMENT & CONFIGURATION -->
-    <!-- ========================================== -->
+    <!-- =================================================== -->
+    <!-- MANAGEMENT SCRIPT & SUPABASE INTEGRATION            -->
+    <!-- =================================================== -->
 
-    <!-- 1. Muat Library Supabase CDN -->
+    <!-- 1. Ambil Library Supabase SDK resmi -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-    <!-- 2. Kredensial & Inisialisasi Klien Supabase -->
+    <!-- 2. Konfigurasi Koneksi Database -->
     <script>
-        // Kredensial proyek Anda sudah dimasukkan di sini
         const SUPABASE_URL = "https://mlcrkbldflufyelpylsv.supabase.co";
         const SUPABASE_ANON_KEY = "sb_publishable_DjiYT55OUHzng69rIuetcQ_9Xl2Kaqk";
 
-        // Inisialisasi variabel global agar bisa dipakai oleh file JS lain
+        // Variabel global agar bisa dipanggil langsung dari file JS eksternal
         const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        /**
+         * Fungsi Tambahan: Otomatis menghitung statistik dashboard dari data Supabase.
+         * Fungsi ini akan dipanggil setiap kali file 'daftar-pegawai.js' selesai merender data.
+         */
+        function updateDashboardCounters(dataPegawai) {
+            if (!dataPegawai || !Array.isArray(dataPegawai)) return;
+
+            const total = dataPegawai.length;
+            const aktif = dataPegawai.filter(p => p.status === 'AKTIF').length;
+            const asn = dataPegawai.filter(p => p.kelompok === 'ASN').length;
+            const blud = dataPegawai.filter(p => p.kelompok === 'BLUD' || p.kelompok === 'APBD').length;
+
+            // Suntikkan angka ke elemen widget diatas
+            if(document.getElementById('stat-total-pegawai')) document.getElementById('stat-total-pegawai').innerText = total;
+            if(document.getElementById('stat-pegawai-aktif')) document.getElementById('stat-pegawai-aktif').innerText = aktif;
+            if(document.getElementById('stat-pegawai-asn')) document.getElementById('stat-pegawai-asn').innerText = asn;
+            if(document.getElementById('stat-pegawai-blud')) document.getElementById('stat-pegawai-blud').innerText = blud;
+        }
     </script>
 
-    <!-- 3. Muat Script Komponen Halaman Pegawai -->
+    <!-- 3. Muat Script Komponen Tabel & Aksi Form -->
     <script src="daftar-pegawai.js"></script>
 
-    <!-- 4. Muat Script Router / Controller Aplikasi Utama -->
+    <!-- 4. Muat Script Router Jalur Utama -->
     <script src="app.js"></script>
 
 </body>
