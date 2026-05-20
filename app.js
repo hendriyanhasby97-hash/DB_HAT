@@ -129,33 +129,8 @@ function renderContent() {
             break;
 
         case 'daftar-pegawai':
-            html = `
-                <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                    <div class="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-                        <input type="text" placeholder="Cari nama atau NIP..." class="px-3 py-1.5 border border-gray-300 rounded-lg text-sm w-64 focus:outline-none focus:border-blue-500">
-                        <button class="bg-blue-600 text-white text-sm px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition cursor-pointer">+ Tambah Pegawai</button>
-                    </div>
-                    <table class="w-full text-left border-collapse">
-                        <thead>
-                            <tr class="bg-gray-100 text-gray-600 text-xs uppercase font-semibold">
-                                <th class="p-4">NIP</th><th class="p-4">Nama</th><th class="p-4">Jabatan</th><th class="p-4">Status</th><th class="p-4 text-center">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody class="text-sm divide-y divide-gray-100 text-gray-700">
-                            <tr>
-                                <td class="p-4 font-mono text-xs">199208122019031002</td>
-                                <td class="p-4 font-medium text-gray-900">Dr. Budi Santoso</td>
-                                <td class="p-4">Ahli Utama / Pembina</td>
-                                <td class="p-4"><span class="px-2 py-1 bg-emerald-100 text-emerald-800 rounded-full text-xs font-semibold">Aktif</span></td>
-                                <td class="p-4 text-center">
-                                    <button class="text-blue-600 hover:underline mr-2 cursor-pointer">Edit</button>
-                                    <button class="text-red-500 hover:underline cursor-pointer">Hapus</button>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            `;
+            // Memanggil fungsi dari file daftar-pegawai.js secara dinamis
+            html = renderDaftarPegawaiComponent();
             break;
 
         default:
