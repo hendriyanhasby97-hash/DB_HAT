@@ -198,7 +198,9 @@
     <script>
         const SUPABASE_URL = "https://mlcrkbldflufyelpylsv.supabase.co";
         const SUPABASE_ANON_KEY = "sb_publishable_DjiYT55OUHzng69rIuetcQ_9Xl2Kaqk";
-        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    
+    // Perbaikan: Gunakan supabase.createClient dari library yang sudah dimuat
+    window.supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         // Kalkulasi Counter Dashboard Atas
         function updateDashboardCounters(dataPegawai) {
