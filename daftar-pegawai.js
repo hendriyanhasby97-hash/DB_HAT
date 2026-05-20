@@ -4,97 +4,6 @@
  */
 
 let pegawaiTerpilihId = null;
-// FUNGSI DETAIL PEGAWAI
-function tampilkanDetailPegawai(pegawai) {
-    const modalContent = document.getElementById('modal-detail-content');
-    if (!modalContent) return;
-
-    modalContent.innerHTML = `
-        <div class="space-y-4">
-            <div class="flex items-center gap-4 border-b pb-4">
-                <div class="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center text-white text-xl font-bold shadow-lg">
-                    ${pegawai.nama ? pegawai.nama.charAt(0) : '?'}
-                </div>
-                <div>
-                    <h3 class="text-lg font-black text-slate-900">${pegawai.nama || '-'}</h3>
-                    <p class="text-xs text-blue-600 font-bold">${pegawai.jabatan || 'Belum ada jabatan'}</p>
-                </div>
-            </div>
-            <div class="grid grid-cols-2 gap-3 text-xs">
-                <div class="p-2 bg-slate-50 rounded border"><p class="text-[9px] text-slate-400 uppercase font-bold">NIP/NIK</p><p class="font-mono font-bold">${pegawai.nip || pegawai.nik || '-'}</p></div>
-                <div class="p-2 bg-slate-50 rounded border"><p class="text-[9px] text-slate-400 uppercase font-bold">Status</p><p class="font-bold text-emerald-600">${pegawai.status || '-'}</p></div>
-            </div>
-        </div>
-    `;
-    document.getElementById('modal-detail-pegawai').classList.remove('hidden');
-}
-
-// FUNGSI RENDER KOMPONEN
-function renderDaftarPegawaiComponent() {
-    setTimeout(() => querySemuaPegawai(), 100);
-    return `
-        <div class="bg-white p-4 rounded-xl shadow-sm border mb-4">
-            <button onclick="bukaModalPegawai()" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-blue-700">
-                <i class="fa-solid fa-plus mr-1"></i>Tambah Pegawai
-            </button>
-        </div>
-        <div class="bg-white p-4 rounded-xl shadow-sm border overflow-x-auto">
-            <table class="w-full text-xs">
-                <thead><tr class="text-slate-400 uppercase border-b"><th class="py-2 text-left">Nama</th><th class="py-2">Aksi</th></tr></thead>
-                <tbody id="tabel-body-pegawai"></tbody>
-            </table>
-        </div>
-
-        <div id="modal-detail-pegawai" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-            <div class="bg-white rounded-2xl w-full max-w-sm p-6 relative">
-                <button onclick="document.getElementById('modal-detail-pegawai').classList.add('hidden')" class="absolute top-4 right-4 text-slate-400"><i class="fa-solid fa-xmark"></i></button>
-                <div id="modal-detail-content"></div>
-            </div>
-        </div>
-    `;
-}
-
-// FUNGSI QUERY DATABASE
-async function querySemuaPegawai() {
-    const tbody = document.getElementById('tabel-body-pegawai');
-    if (!tbody) return;
-
-    const { data, error } = await window.supabase.from('daftar_pegawai').select('*');
-    if (error) return;
-
-    tbody.innerHTML = data.map(item => `
-        <tr class="border-b hover:bg-slate-50">
-            <td class="py-3">${item.nama}</td>
-            <td class="py-3 text-center">
-                <button onclick='tampilkanDetailPegawai(${JSON.stringify(item)})' class="text-emerald-600 p-2"><i class="fa-solid fa-eye"></i></button>
-                <button onclick="ambilPegawaiSatuData('${item.id_pegawai || item.id}')" class="text-blue-600 p-2"><i class="fa-solid fa-pen-to-square"></i></button>
-            </td>
-        </tr>
-    `).join('');
-}
-
-async function querySemuaPegawai() {
-    const tbody = document.getElementById('tabel-body-pegawai');
-    const { data, error } = await window.supabase.from('daftar_pegawai').select('*');
-    if (error) return;
-    tbody.innerHTML = data.map(item => `
-        <tr class="border-b">
-            <td class="py-3 font-bold">${item.nama}</td>
-            <td class="py-3"><span class="px-2 py-1 bg-green-100 text-green-700 rounded-full text-[10px]">${item.status}</span></td>
-            <td class="py-3 text-center">
-    <button onclick='tampilkanDetailPegawai(${JSON.stringify(item)})' 
-            class="text-emerald-600 hover:text-emerald-800 p-2 transition-all">
-        <i class="fa-solid fa-eye"></i>
-    </button>
-    
-    <button onclick="ambilPegawaiSatuData('${item.id_pegawai || item.id}')" 
-            class="text-blue-600 hover:text-blue-800 p-2 transition-all">
-        <i class="fa-solid fa-pen-to-square"></i>
-    </button>
-</td>
-        </tr>
-    `).join('');
-}
 
 function renderDaftarPegawaiComponent() {
     // Tarik data setelah komponen termuat di DOM
@@ -390,12 +299,6 @@ function renderDaftarPegawaiComponent() {
             </div>
         </div>
     `;
-    <div id="modal-detail-pegawai" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-    <div class="bg-white rounded-2xl w-full max-w-sm p-6 relative">
-        <button onclick="document.getElementById('modal-detail-pegawai').classList.add('hidden')" class="absolute top-4 right-4 text-slate-400"><i class="fa-solid fa-xmark"></i></button>
-        <div id="modal-detail-content"></div>
-    </div>
-</div>
 }
 
 // =======================================================
@@ -750,7 +653,6 @@ async function hapusPegawai(id, nama) {
 // =======================================================
 // EXPORT UNTUK WINDOW GLOBAL SCOPE (Mencegah Error Router)
 // =======================================================
-window.tampilkanDetailPegawai = tampilkanDetailPegawai;
 window.renderDaftarPegawaiComponent = renderDaftarPegawaiComponent;
 window.autoHitungTmtCpns = autoHitungTmtCpns;
 window.autoHitungTmtPensiun = autoHitungTmtPensiun;
@@ -760,7 +662,4 @@ window.tutupModalPegawai = tutupModalPegawai;
 window.ambilPegawaiSatuData = ambilPegawaiSatuData;
 window.handleSimpanPegawai = handleSimpanPegawai;
 window.hapusPegawai = hapusPegawai;
-window.querySemuaPegawai = querySemuaPegawai;
-window.renderDaftarPegawaiComponent = renderDaftarPegawaiComponent;
-window.tampilkanDetailPegawai = tampilkanDetailPegawai;
 window.querySemuaPegawai = querySemuaPegawai;
