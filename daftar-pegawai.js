@@ -1,6 +1,6 @@
 /**
  * DAFTAR-PEGAWAI.JS - Manajemen SIMPEG Akurat (Modal Jumbo Grid & Auto-Calculations)
- * Nama Tabel Database: daftar_pegawai
+ * Nama Tabel Database Supabase: daftar_pegawai
  */
 
 let pegawaiTerpilihId = null;
@@ -78,13 +78,13 @@ function renderDaftarPegawaiComponent() {
                     
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         
-                        <!-- GRID KOLOM 1: IDENTITAS UTAMA & AKUN -->
+                        <!-- GRID KOLOM 1: IDENTITAS POKOK -->
                         <div class="bg-white p-4 rounded-xl border border-gray-200/80 shadow-xs space-y-3.5">
                             <h4 class="text-[11px] font-black text-blue-600 uppercase tracking-wider border-b border-slate-100 pb-1.5 flex items-center gap-1.5"><i class="fa-solid fa-address-card text-slate-400"></i> 1. Identitas Pokok</h4>
                             
                             <div>
-                                <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">NIP (Nomor Induk Pegawai) *</label>
-                                <input type="text" id="form-nip" oninput="autoHitungTmtCpns()" required class="w-full p-2 bg-slate-50 border border-gray-300 rounded-lg text-xs font-mono focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none" placeholder="Contoh: 199405122021031002">
+                                <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">NIP (Nomor Induk Pegawai) <span class="text-gray-400 font-normal">(Opsional)</span></label>
+                                <input type="text" id="form-nip" oninput="autoHitungTmtCpns()" class="w-full p-2 bg-slate-50 border border-gray-300 rounded-lg text-xs font-mono focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none" placeholder="Isi jika ASN (18 digit)">
                             </div>
                             <div>
                                 <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">NIK KTP *</label>
@@ -121,7 +121,7 @@ function renderDaftarPegawaiComponent() {
                                 </div>
                                 <div>
                                     <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Tanggal Lahir</label>
-                                    <input type="date" id="form-tanggal-lahir" class="w-full p-2 bg-slate-50 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none">
+                                    <input type="date" id="form-tanggal-lahir" oninput="autoHitungTmtPensiun()" class="w-full p-2 bg-slate-50 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none">
                                 </div>
                             </div>
                             <div>
@@ -138,7 +138,7 @@ function renderDaftarPegawaiComponent() {
                             </div>
                         </div>
 
-                        <!-- GRID KOLOM 2: JABATAN, RUANGAN, & TMT GOLONGAN -->
+                        <!-- GRID KOLOM 2: PENUGASAN & KEPANGKATAN -->
                         <div class="bg-white p-4 rounded-xl border border-gray-200/80 shadow-xs space-y-3.5">
                             <h4 class="text-[11px] font-black text-blue-600 uppercase tracking-wider border-b border-slate-100 pb-1.5 flex items-center gap-1.5"><i class="fa-solid fa-sitemap text-slate-400"></i> 2. Penugasan & Kepangkatan</h4>
                             
@@ -222,16 +222,16 @@ function renderDaftarPegawaiComponent() {
                             <div class="grid grid-cols-2 gap-2">
                                 <div>
                                     <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Rentang BUP (Tahun)</label>
-                                    <input type="number" id="form-rentang-bup" class="w-full p-2 bg-slate-50 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none" placeholder="58 atau 60">
+                                    <input type="number" id="form-rentang-bup" oninput="autoHitungTmtPensiun()" class="w-full p-2 bg-slate-50 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none" placeholder="58 atau 60">
                                 </div>
                                 <div>
-                                    <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">TMT Pensiun</label>
-                                    <input type="date" id="form-tmt-pensiun" class="w-full p-2 bg-slate-50 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none">
+                                    <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">TMT Pensiun (Auto)</label>
+                                    <input type="date" id="form-tmt-pensiun" readonly class="w-full p-2 bg-blue-50 border border-blue-200 text-blue-700 font-mono rounded-lg text-xs outline-none cursor-not-allowed">
                                 </div>
                             </div>
                         </div>
 
-                        <!-- GRID KOLOM 3: OTOMATISASI MASUK RS, HISTORI AKADEMIK, KELUARGA & FINANSIAL -->
+                        <!-- GRID KOLOM 3: KALKULASI & BERKAS DATA -->
                         <div class="bg-white p-4 rounded-xl border border-gray-200/80 shadow-xs space-y-3.5">
                             <h4 class="text-[11px] font-black text-blue-600 uppercase tracking-wider border-b border-slate-100 pb-1.5 flex items-center gap-1.5"><i class="fa-solid fa-calculator text-slate-400"></i> 3. Kalkulasi & Berkas Data</h4>
                             
@@ -313,26 +313,64 @@ function renderDaftarPegawaiComponent() {
 }
 
 // =======================================================
-// OTOMATISASI DAN FORMULASI LOGIKA JAVASCRIPT
+// AUTOMATION & LOGIC SYSTEM
 // =======================================================
 
+// 1. Ekstraksi Otomatis TMT CPNS (NIP Opsional)
 function autoHitungTmtCpns() {
-    const nip = document.getElementById('form-nip').value.trim();
+    const nipInput = document.getElementById('form-nip');
     const tmtCpnsInput = document.getElementById('form-tmt-cpns');
     
-    if (nip.length >= 14) {
-        const thn = nip.substring(8, 12);
-        const bln = nip.substring(12, 14);
-        const tgl = "01";
-
-        if (!isNaN(thn) && !isNaN(bln)) {
-            tmtCpnsInput.value = `${thn}-${bln}-${tgl}`;
-            return;
-        }
+    if (!nipInput || !tmtCpnsInput) return;
+    const nip = nipInput.value.trim();
+    
+    if (!nip || nip.length < 14) {
+        tmtCpnsInput.value = "";
+        return;
     }
-    tmtCpnsInput.value = "";
+    
+    const thn = nip.substring(8, 12);
+    const bln = nip.substring(12, 14);
+    const tgl = "01"; 
+
+    if (!isNaN(thn) && !isNaN(bln)) {
+        tmtCpnsInput.value = `${thn}-${bln}-${tgl}`;
+    } else {
+        tmtCpnsInput.value = "";
+    }
 }
 
+// 2. Hitung Otomatis TMT Pensiun (Tgl Lahir + BUP, Jatuh Pada Tgl 1 Bulan Berikutnya)
+function autoHitungTmtPensiun() {
+    const tanggalLahirStr = document.getElementById('form-tanggal-lahir').value;
+    const bupInput = document.getElementById('form-rentang-bup').value;
+    const tmtPensiunInput = document.getElementById('form-tmt-pensiun');
+
+    if (!tanggalLahirStr || !bupInput) {
+        tmtPensiunInput.value = "";
+        return;
+    }
+
+    const bupTahun = parseInt(bupInput);
+    if (isNaN(bupTahun) || bupTahun <= 0) {
+        tmtPensiunInput.value = "";
+        return;
+    }
+
+    const lahir = new Date(tanggalLahirStr);
+    let tahunPensiun = lahir.getFullYear() + bupTahun;
+    let bulanPensiun = lahir.getMonth() + 1; // Maju ke 1 bulan berikutnya setelah ultah pensiun
+
+    if (bulanPensiun > 11) {
+        bulanPensiun = 0;
+        tahunPensiun += 1;
+    }
+
+    const mm = String(bulanPensiun + 1).padStart(2, '0');
+    tmtPensiunInput.value = `${tahunPensiun}-${mm}-01`;
+}
+
+// 3. Hitung Otomatis Masa Kerja Rumah Sakit Realtime
 function autoKalkulasiMasaKerja() {
     const tanggalMasukStr = document.getElementById('form-masuk-rs').value;
     const infoMasaKerja = document.getElementById('form-masa-kerja-rs');
@@ -351,12 +389,12 @@ function autoKalkulasiMasaKerja() {
     }
 
     let tahunDiff = sekarang.getFullYear() - masuk.getFullYear();
-    let bulanDiff = Bird = sekarang.getMonth() - masuk.getMonth();
+    let bulanDiff = sekarang.getMonth() - masuk.getMonth();
     let hariDiff = sekarang.getDate() - masuk.getDate();
 
     if (hariDiff < 0) {
         bulanDiff--;
-        const bulanLalu = new Date(sekarang.getFullYear(), Bird, 0).getDate();
+        const bulanLalu = new Date(sekarang.getFullYear(), sekarang.getMonth(), 0).getDate();
         hariDiff += bulanLalu;
     }
 
@@ -367,47 +405,8 @@ function autoKalkulasiMasaKerja() {
 
     infoMasaKerja.value = `${tahunDiff} TAHUN ${bulanDiff} BULAN ${hariDiff} HARI`;
 }
-function autoHitungTmtPensiun() {
-    const tanggalLahirStr = document.getElementById('form-tanggal-lahir').value;
-    const bupInput = document.getElementById('form-rentang-bup').value;
-    const tmtPensiunInput = document.getElementById('form-tmt-pensiun');
 
-    // Jika tanggal lahir atau rentang BUP belum diisi, kosongkan TMT Pensiun
-    if (!tanggalLahirStr || !bupInput) {
-        tmtPensiunInput.value = "";
-        return;
-    }
-
-    const bupTahun = parseInt(bupInput);
-    if (isNaN(bupTahun) || bupTahun <= 0) {
-        tmtPensiunInput.value = "";
-        return;
-    }
-
-    const lahir = new Date(tanggalLahirStr);
-    
-    // 1. Hitung tahun saat menyentuh usia pensiun
-    let tahunPensiun = lahir.getFullYear() + bupTahun;
-    let bulanPensiun = lahir.getMonth(); // 0 = Januari, 1 = Februari, dst.
-
-    // 2. Rumus Administrasi: TMT Pensiun adalah tanggal 1 di bulan BERIKUTNYA
-    // Kita naikkan bulannya sebesar +1
-    bulanPensiun = bulanPensiun + 1;
-
-    // Jika bulan menjadi 12 (artinya lahir di bulan Desember), maka maju ke Januari tahun depan
-    if (bulanPensiun > 11) {
-        bulanPensiun = 0;
-        tahunPensiun = tahunPensiun + 1;
-    }
-
-    // Format ke string YYYY-MM-DD dengan tanggal selalu "01"
-    const mm = String(bulanPensiun + 1).padStart(2, '0');
-    const yyyy = tahunPensiun;
-    
-    tmtPensiunInput.value = `${yyyy}-${mm}-01`;
-}
-
-// Tarik data dari tabel: daftar_pegawai
+// 4. Ambil Seluruh Data dari Tabel Supabase: daftar_pegawai
 async function querySemuaPegawai() {
     const tbody = document.getElementById('tabel-body-pegawai');
     if (!tbody) return;
@@ -421,7 +420,6 @@ async function querySemuaPegawai() {
     const kataKunci = document.getElementById('cari-pegawai') ? document.getElementById('cari-pegawai').value.trim() : '';
     
     try {
-        // Tembak tabel 'daftar_pegawai'
         let query = supabase.from('daftar_pegawai').select('*').order('created_at', { ascending: false });
         
         if (kataKunci !== '') {
@@ -511,7 +509,7 @@ function bukaModalPegawai() {
     document.getElementById('form-jenis-kelamin').value = "LAKI-LAKI";
     document.getElementById('form-agama').value = "ISLAM";
     document.getElementById('form-status').value = "AKTIF";
-    document.getElementById('form-kelompok').value = "ASN";
+    document.getElementById('form-kelompok').value = "BLUD";
     document.getElementById('form-kelompok-jabatan').value = "TENAGA KESEHATAN";
     document.getElementById('form-gol').value = "Penata Muda / III/a";
     document.getElementById('form-status-keluarga').value = "BELUM KAWIN";
@@ -521,7 +519,6 @@ function bukaModalPegawai() {
 
 async function ambilPegawaiSatuData(id) {
     try {
-        // Mengambil rincian dari tabel 'daftar_pegawai'
         let response = await supabase.from('daftar_pegawai').select('*').eq('id_pegawai', id);
         if(response.error || response.data.length === 0) {
             response = await supabase.from('daftar_pegawai').select('*').eq('id', id);
@@ -547,7 +544,7 @@ async function ambilPegawaiSatuData(id) {
         document.getElementById('form-email').value = data.email || "";
         document.getElementById('form-alamat').value = data.alamat || "";
         document.getElementById('form-status').value = data.status || "AKTIF";
-        document.getElementById('form-kelompok').value = data.kelompok || "ASN";
+        document.getElementById('form-kelompok').value = data.kelompok || "BLUD";
         document.getElementById('form-kelompok-jabatan').value = data.kelompok_jabatan || "TENAGA KESEHATAN";
         document.getElementById('form-gol').value = data.gol || "Penata Muda / III/a";
         document.getElementById('form-jabatan').value = data.jabatan || "";
@@ -569,6 +566,7 @@ async function ambilPegawaiSatuData(id) {
         document.getElementById('form-no-bpjsket-taspen').value = data.no_bpjsket_taspen || "";
         document.getElementById('form-npwp').value = data.npwp || "";
 
+        autoHitungTmtPensiun();
         document.getElementById('modal-pegawai').classList.remove('hidden');
     } catch (err) {
         alert("Gagal memuat rincian pegawai:\n" + err.message);
@@ -584,10 +582,11 @@ async function handleSimpanPegawai(event) {
     const btn = document.getElementById('btn-simpan-pegawai');
     
     autoHitungTmtCpns();
+    autoHitungTmtPensiun();
     autoKalkulasiMasaKerja();
 
     const payload = {
-        nip: document.getElementById('form-nip').value.trim(),
+        nip: document.getElementById('form-nip').value.trim() || null,
         nik: document.getElementById('form-nik').value.trim(),
         nama: document.getElementById('form-nama').value.trim(),
         jenis_kelamin: document.getElementById('form-jenis-kelamin').value,
@@ -626,11 +625,9 @@ async function handleSimpanPegawai(event) {
 
     try {
         if (pegawaiTerpilihId === null) {
-            // Insert ke tabel 'daftar_pegawai'
             const { error } = await supabase.from('daftar_pegawai').insert([payload]);
             if (error) throw error;
         } else {
-            // Update ke tabel 'daftar_pegawai'
             let res = await supabase.from('daftar_pegawai').update(payload).eq('id_pegawai', pegawaiTerpilihId);
             if(res.error) {
                 res = await supabase.from('daftar_pegawai').update(payload).eq('id', pegawaiTerpilihId);
@@ -653,7 +650,6 @@ async function hapusPegawai(id, nama) {
     if (!konfirmasi) return;
 
     try {
-        // Delete dari tabel 'daftar_pegawai'
         let res = await supabase.from('daftar_pegawai').delete().eq('id_pegawai', id);
         if(res.error) {
             res = await supabase.from('daftar_pegawai').delete().eq('id', id);
