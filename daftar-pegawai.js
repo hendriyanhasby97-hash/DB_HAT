@@ -1,5 +1,6 @@
 /**
  * DAFTAR-PEGAWAI.JS - Manajemen SIMPEG Akurat (Modal Jumbo Grid & Auto-Calculations)
+ * Nama Tabel Database: daftar_pegawai
  */
 
 let pegawaiTerpilihId = null;
@@ -315,17 +316,14 @@ function renderDaftarPegawaiComponent() {
 // OTOMATISASI DAN FORMULASI LOGIKA JAVASCRIPT
 // =======================================================
 
-// 1. Ekstraksi Otomatis TMT CPNS dari 18 Digit NIP Pegawai
 function autoHitungTmtCpns() {
     const nip = document.getElementById('form-nip').value.trim();
     const tmtCpnsInput = document.getElementById('form-tmt-cpns');
     
     if (nip.length >= 14) {
-        // Format NIP: YYYYMMDD YYYYMM N X XXX
-        // Indeks Angka ke-9 s.d 14 adalah Tahun dan Bulan pengangkatan CPNS
         const thn = nip.substring(8, 12);
         const bln = nip.substring(12, 14);
-        const tgl = "01"; // Standardisasi TMT CPNS biasa terhitung tanggal 01 awal bulan
+        const tgl = "01";
 
         if (!isNaN(thn) && !isNaN(bln)) {
             tmtCpnsInput.value = `${thn}-${bln}-${tgl}`;
@@ -335,7 +333,6 @@ function autoHitungTmtCpns() {
     tmtCpnsInput.value = "";
 }
 
-// 2. Hitung Masa Kerja Rumah Sakit Secara Realtime (## Tahun ## Bulan ## Hari)
 function autoKalkulasiMasaKerja() {
     const tanggalMasukStr = document.getElementById('form-masuk-rs').value;
     const infoMasaKerja = document.getElementById('form-masa-kerja-rs');
@@ -354,13 +351,12 @@ function autoKalkulasiMasaKerja() {
     }
 
     let tahunDiff = sekarang.getFullYear() - masuk.getFullYear();
-    let bulanDiff = sekarang.getMonth() - masuk.getMonth();
+    let bulanDiff = Bird = sekarang.getMonth() - masuk.getMonth();
     let hariDiff = sekarang.getDate() - masuk.getDate();
 
     if (hariDiff < 0) {
         bulanDiff--;
-        // Dapatkan jumlah hari dari bulan sebelumnya
-        const bulanLalu = new Date(sekarang.getFullYear(), sekarang.getMonth(), 0).getDate();
+        const bulanLalu = new Date(sekarang.getFullYear(), Bird, 0).getDate();
         hariDiff += bulanLalu;
     }
 
@@ -372,7 +368,7 @@ function autoKalkulasiMasaKerja() {
     infoMasaKerja.value = `${tahunDiff} TAHUN ${bulanDiff} BULAN ${hariDiff} HARI`;
 }
 
-// 3. Ambil Seluruh Data Pegawai Komplit dari Supabase
+// Tarik data dari tabel: daftar_pegawai
 async function querySemuaPegawai() {
     const tbody = document.getElementById('tabel-body-pegawai');
     if (!tbody) return;
@@ -386,7 +382,8 @@ async function querySemuaPegawai() {
     const kataKunci = document.getElementById('cari-pegawai') ? document.getElementById('cari-pegawai').value.trim() : '';
     
     try {
-        let query = supabase.from('pegawai').select('*').order('created_at', { ascending: false });
+        // Tembak tabel 'daftar_pegawai'
+        let query = supabase.from('daftar_pegawai').select('*').order('created_at', { ascending: false });
         
         if (kataKunci !== '') {
             query = query.or(`nama.ilike.%${kataKunci}%,nip.ilike.%${kataKunci}%,nik.ilike.%${kataKunci}%,jabatan.ilike.%${kataKunci}%`);
@@ -401,7 +398,6 @@ async function querySemuaPegawai() {
         }
 
         tbody.innerHTML = data.map((item, index) => {
-            // Pengondisian badge warna status pegawai
             let statusStyle = 'bg-gray-100 text-gray-700 border-gray-300';
             if (item.status === 'AKTIF') statusStyle = 'bg-emerald-50 text-emerald-600 border-emerald-200';
             else if (item.status === 'MUTASI') statusStyle = 'bg-blue-50 text-blue-600 border-blue-200';
@@ -463,7 +459,6 @@ function bukaModalPegawai() {
     document.getElementById('modal-icon-container').className = "p-2 bg-blue-50 text-blue-600 rounded-lg text-sm";
     document.getElementById('modal-icon-container').innerHTML = `<i class="fa-solid fa-user-plus"></i>`;
     
-    // Reset Kosongkan Seluruh Field Input 
     const fields = [
         'form-nip', 'form-nik', 'form-nama', 'form-tempat-lahir', 'form-tanggal-lahir',
         'form-no-telp', 'form-email', 'form-alamat', 'form-jabatan', 'form-ruangan',
@@ -474,7 +469,6 @@ function bukaModalPegawai() {
     ];
     fields.forEach(f => { if(document.getElementById(f)) document.getElementById(f).value = ""; });
     
-    // Set Nilai Default Dropdown Select
     document.getElementById('form-jenis-kelamin').value = "LAKI-LAKI";
     document.getElementById('form-agama').value = "ISLAM";
     document.getElementById('form-status').value = "AKTIF";
@@ -488,10 +482,10 @@ function bukaModalPegawai() {
 
 async function ambilPegawaiSatuData(id) {
     try {
-        // Cek fallback primary key id_pegawai atau id biasa
-        let response = await supabase.from('pegawai').select('*').eq('id_pegawai', id);
+        // Mengambil rincian dari tabel 'daftar_pegawai'
+        let response = await supabase.from('daftar_pegawai').select('*').eq('id_pegawai', id);
         if(response.error || response.data.length === 0) {
-            response = await supabase.from('pegawai').select('*').eq('id', id);
+            response = await supabase.from('daftar_pegawai').select('*').eq('id', id);
         }
         
         if (response.error || response.data.length === 0) throw new Error("Data pegawai tidak ditemukan.");
@@ -503,7 +497,6 @@ async function ambilPegawaiSatuData(id) {
         document.getElementById('modal-icon-container').className = "p-2 bg-amber-50 text-amber-600 rounded-lg text-sm";
         document.getElementById('modal-icon-container').innerHTML = `<i class="fa-solid fa-user-pen"></i>`;
 
-        // Inject data Supabase ke Form Field satu per satu
         document.getElementById('form-nip').value = data.nip || "";
         document.getElementById('form-nik').value = data.nik || "";
         document.getElementById('form-nama').value = data.nama || "";
@@ -547,12 +540,10 @@ function tutupModalPegawai() {
     document.getElementById('modal-pegawai').classList.add('hidden');
 }
 
-// 4. Aksi Simpan atau Pembaruan Data Menyeluruh ke Supabase
 async function handleSimpanPegawai(event) {
     event.preventDefault();
     const btn = document.getElementById('btn-simpan-pegawai');
     
-    // Ambil kalkulasi akhir sebelum dikirim
     autoHitungTmtCpns();
     autoKalkulasiMasaKerja();
 
@@ -596,14 +587,14 @@ async function handleSimpanPegawai(event) {
 
     try {
         if (pegawaiTerpilihId === null) {
-            // Operasi Tambah Baru (Insert)
-            const { error } = await supabase.from('pegawai').insert([payload]);
+            // Insert ke tabel 'daftar_pegawai'
+            const { error } = await supabase.from('daftar_pegawai').insert([payload]);
             if (error) throw error;
         } else {
-            // Operasi Update Data Pegawai Eksis
-            let res = await supabase.from('pegawai').update(payload).eq('id_pegawai', pegawaiTerpilihId);
+            // Update ke tabel 'daftar_pegawai'
+            let res = await supabase.from('daftar_pegawai').update(payload).eq('id_pegawai', pegawaiTerpilihId);
             if(res.error) {
-                res = await supabase.from('pegawai').update(payload).eq('id', pegawaiTerpilihId);
+                res = await supabase.from('daftar_pegawai').update(payload).eq('id', pegawaiTerpilihId);
             }
             if (res.error) throw res.error;
         }
@@ -623,9 +614,10 @@ async function hapusPegawai(id, nama) {
     if (!konfirmasi) return;
 
     try {
-        let res = await supabase.from('pegawai').delete().eq('id_pegawai', id);
+        // Delete dari tabel 'daftar_pegawai'
+        let res = await supabase.from('daftar_pegawai').delete().eq('id_pegawai', id);
         if(res.error) {
-            res = await supabase.from('pegawai').delete().eq('id', id);
+            res = await supabase.from('daftar_pegawai').delete().eq('id', id);
         }
         if (res.error) throw res.error;
         querySemuaPegawai();
