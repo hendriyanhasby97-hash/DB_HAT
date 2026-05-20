@@ -1,37 +1,48 @@
 /**
- * APP.JS - Controller & Router Utama Aplikasi
- * Tugas: Menjembatani komponen halaman agar tampil di index.html
+ * APP.JS - Controller Utama & Gerbang Otentikasi Aplikasi
  */
 
-// Fungsi untuk mengatur halaman mana yang ingin ditampilkan
 function router() {
-    const rootElement = document.getElementById('app-root');
-    if (!rootElement) return;
+    // 1. Jalankan pengecekan otentikasi dari login.js
+    if (typeof cekOtentikasi === 'function') {
+        const isUserLoggedIn = cekOtentikasi();
+        
+        // Jika belum login, baris eksekusi berhenti di sini (Form Login akan dirender oleh login.js)
+        if (!isUserLoggedIn) return; 
+    }
 
-    // Periksa apakah fungsi render dari daftar-pegawai.js sudah siap di memori browser
-    if (typeof renderDaftarPegawaiComponent === 'function') {
-        
-        // 1. Suntikkan HTML template dari daftar-pegawai.js ke dalam index.html
-        rootElement.innerHTML = renderDaftarPegawaiComponent();
-        
-    } else {
-        // Antisipasi jika file daftar-pegawai.js gagal dimuat atau urutannya salah
-        rootElement.innerHTML = `
-            <div class="max-w-xl mx-auto my-12 p-6 bg-red-50 border border-red-200 rounded-xl text-red-800 shadow-xs">
-                <div class="flex items-start gap-3">
-                    <i class="fa-solid fa-triangle-exclamation text-xl mt-0.5"></i>
-                    <div>
-                        <h3 class="font-bold text-base mb-1">Gagal Memuat Komponen</h3>
-                        <p class="text-sm text-red-700">Fungsi <code>renderDaftarPegawaiComponent()</code> tidak ditemukan.</p>
-                        <p class="text-xs text-red-500 mt-2">Solusi: Pastikan file <b>daftar-pegawai.js</b> sudah tersimpan di folder yang sama dan dipanggil sebelum file <b>app.js</b> di dalam file index.html.</p>
-                    </div>
+    // 2. Jika lolos otentikasi, tampilkan layout dashboard utama
+    const mainLayout = document.getElementById('main-layout');
+    if (mainLayout) {
+        mainLayout.classList.remove('hidden');
+        // Reset class background body dari setelan halaman login
+        document.body.className = "bg-slate-100 font-sans text-slate-800 antialiased";
+    }
+
+    // 3. Pasang info profil pengguna terdaftar di bagian footer sidebar
+    const user = dapatkanSesiUser();
+    if (user) {
+        if(document.getElementById('user-display-name')) document.getElementById('user-display-name').innerText = user.nama || "User SIMPEG";
+        if(document.getElementById('user-display-role')) document.getElementById('user-display-role').innerText = user.jabatan || "Karyawan";
+        if(document.getElementById('user-avatar-initial')) document.getElementById('user-avatar-initial').innerText = (user.nama || "A").charAt(0).toUpperCase();
+    }
+
+    // 4. Masukkan Komponen Tabel CRUD Pegawai ke area tengah
+    const rootElement = document.getElementById('app-root');
+    if (rootElement) {
+        if (typeof renderDaftarPegawaiComponent === 'function') {
+            rootElement.innerHTML = renderDaftarPegawaiComponent();
+        } else {
+            rootElement.innerHTML = `
+                <div class="p-4 bg-red-50 text-red-700 border border-red-200 rounded-xl text-sm">
+                    <b>Error:</b> Fungsi <code>renderDaftarPegawaiComponent()</code> di file daftar-pegawai.js belum termuat.
                 </div>
-            </div>
-        `;
+            `;
+        }
     }
 }
 
-// Jalankan fungsi router secara otomatis begitu browser selesai memuat struktur HTML (DOM)
+// Jalankan inisialisasi aplikasi
 document.addEventListener('DOMContentLoaded', () => {
     router();
 });
