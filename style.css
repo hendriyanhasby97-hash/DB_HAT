@@ -1,0 +1,43 @@
+:root {
+    --primary-color: #1a237e;
+    --sidebar-width: 260px;
+    --sidebar-collapsed-width: 70px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+
+.app-container { display: flex; min-height: 100vh; }
+
+/* Sidebar */
+.sidebar {
+    width: var(--sidebar-width);
+    background: var(--primary-color);
+    color: white;
+    transition: width 0.3s ease;
+    overflow: hidden;
+}
+
+.sidebar.collapsed { width: var(--sidebar-collapsed-width); }
+
+.sidebar-header { padding: 20px; font-weight: bold; font-size: 1.2rem; display: flex; align-items: center; gap: 10px; }
+.menu-list { list-style: none; margin-top: 20px; }
+.menu-list li a { 
+    display: flex; align-items: center; padding: 15px 20px; color: white; text-decoration: none;
+    transition: 0.3s; white-space: nowrap;
+}
+.menu-list li a:hover { background: rgba(255,255,255,0.1); }
+.menu-list li a span { margin-left: 15px; }
+
+/* Main Content */
+.main-content { flex: 1; background: #f4f6f9; }
+.top-bar { 
+    background: white; padding: 15px 20px; display: flex; 
+    justify-content: space-between; align-items: center;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+.toggle-btn { cursor: pointer; border: none; background: transparent; font-size: 1.5rem; }
+.content-area { padding: 20px; }
+
+/* Hide text when collapsed */
+.sidebar.collapsed .sidebar-header span,
+.sidebar.collapsed .menu-list li a span { display: none; }
