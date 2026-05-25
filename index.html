@@ -3,9 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AppInstan HRIS</title>
+    <title>AppInstan HRIS | Dashboard</title>
+    
     <link rel="stylesheet" href="style.css">
+    
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -13,7 +16,7 @@
     <div class="app-container">
         <nav id="sidebar" class="sidebar">
             <div class="sidebar-header">
-                <i class="fa-solid fa-building-user"></i> <span>AppInstan HRIS</span>
+                <i class="fa-solid fa-briefcase"></i> <span>AppInstan HRIS</span>
             </div>
             <ul class="menu-list">
                 <li><a href="#"><i class="fa-solid fa-user-shield"></i> <span>Admin</span></a></li>
@@ -35,15 +38,15 @@
                         <img src="https://ui-avatars.com/api/?name=Hasby" alt="Avatar">
                     </div>
                     <div class="dropdown-menu" id="dropdownMenu">
-                        <a href="#"><i class="fa-solid fa-key"></i> Ganti Password</a>
+                        <a href="#" onclick="handleChangePassword()"><i class="fa-solid fa-key"></i> Ganti Password</a>
                         <a href="#" class="logout-btn"><i class="fa-solid fa-right-from-bracket"></i> Log Out</a>
                     </div>
                 </div>
             </header>
 
             <section class="content-area">
-                <h1>Selamat Datang</h1>
-                <p>Silakan pilih menu di samping untuk memulai pekerjaan.</p>
+                <h1>Dashboard</h1>
+                <p>Selamat datang, Hasby. Sistem siap digunakan.</p>
             </section>
         </main>
     </div>
