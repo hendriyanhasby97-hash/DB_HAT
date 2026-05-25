@@ -3,20 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AppInstan HRIS Dashboard</title>
+    <title>AppInstan HRIS</title>
     <link rel="stylesheet" href="style.css">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
 
     <div class="app-container">
         <nav id="sidebar" class="sidebar">
             <div class="sidebar-header">
-                <i class="fa-solid fa-briefcase"></i> <span>AppInstan HRIS</span>
+                <i class="fa-solid fa-building-user"></i> <span>AppInstan HRIS</span>
             </div>
             <ul class="menu-list">
                 <li><a href="#"><i class="fa-solid fa-user-shield"></i> <span>Admin</span></a></li>
-                <li><a href="#"><i class="fa-solid fa-chart-line"></i> <span>MIC</span></a></li>
+                <li><a href="#"><i class="fa-solid fa-database"></i> <span>Management Information</span></a></li>
                 <li><a href="#"><i class="fa-solid fa-wallet"></i> <span>Financial Center</span></a></li>
                 <li><a href="#"><i class="fa-solid fa-clock-rotate-left"></i> <span>History</span></a></li>
                 <li><a href="#"><i class="fa-solid fa-user"></i> <span>My Info</span></a></li>
@@ -27,16 +27,23 @@
         <main class="main-content">
             <header class="top-bar">
                 <button id="toggleBtn" class="toggle-btn"><i class="fa-solid fa-bars"></i></button>
-                <div class="user-profile">
-                    <span>Halo, Hasby</span>
-                    <img src="https://ui-avatars.com/api/?name=Hasby" alt="Avatar">
+                
+                <div class="user-profile" id="userMenu">
+                    <div class="profile-trigger" onclick="toggleDropdown()">
+                        <span>Halo, Hasby</span>
+                        <img src="https://ui-avatars.com/api/?name=Hasby" alt="Avatar">
+                    </div>
+                    <div class="dropdown-menu" id="dropdownMenu">
+                        <a href="#"><i class="fa-solid fa-key"></i> Ganti Password</a>
+                        <a href="#" class="logout-btn"><i class="fa-solid fa-right-from-bracket"></i> Log Out</a>
+                    </div>
                 </div>
             </header>
 
             <section class="content-area">
-                <h1>Dashboard HRIS</h1>
-                <p>Selamat datang kembali. Silakan kelola data pegawai Anda di bawah ini.</p>
-                </section>
+                <h1>Selamat Datang</h1>
+                <p>Silakan pilih menu di samping untuk memulai pekerjaan.</p>
+            </section>
         </main>
     </div>
 
