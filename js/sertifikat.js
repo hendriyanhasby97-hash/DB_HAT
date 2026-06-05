@@ -18,28 +18,14 @@ export function renderSertifikat(container, userRole = 'superadmin') {
             .filter-group { display: flex; gap: 10px; flex: 1; }
             .filter-group input { padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 4px; outline: none; width: 300px; }
             
-            /* MODAL CSS */
-            .modal { 
-                display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-                background: rgba(0,0,0,0.6); 
-                align-items: flex-start; 
-                justify-content: center; 
-                z-index: 9999; 
-                padding: 20px; 
-            }
-            .modal-content { 
-                background: white; padding: 30px; border-radius: 8px; 
-                width: 800px; 
-                max-width: 100%; 
-                max-height: 90vh; 
-                overflow-y: auto; 
-                margin-top: 2vh; 
-            }
+            .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); align-items: flex-start; justify-content: center; z-index: 9999; padding: 20px; }
+            .modal-content { background: white; padding: 30px; border-radius: 8px; width: 800px; max-width: 100%; max-height: 90vh; overflow-y: auto; margin-top: 2vh; }
             
             .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;}
             .form-group label { display: block; font-weight: 600; font-size: 0.85rem; color: #475569; margin-bottom: 4px;}
             .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; outline: none;}
             .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: #3b82f6; }
+            .form-group input[readonly] { background: #f1f5f9; cursor: not-allowed; }
             
             fieldset { border: 1px solid #e2e8f0; padding: 15px; border-radius: 6px; margin-bottom: 15px; background: #fafafa;}
             legend { font-weight: bold; background: #3b82f6; color: white; padding: 4px 10px; border-radius: 4px; font-size: 0.9rem;}
@@ -82,8 +68,16 @@ export function renderSertifikat(container, userRole = 'superadmin') {
                     
                     <fieldset><legend>Data Pegawai</legend>
                         <div class="grid-2">
-                            <div class="form-group"><label>NIK</label><input type="text" name="nik" id="form_nik" required></div>
-                            <div class="form-group"><label>Nama Lengkap</label><input type="text" name="nama" id="form_nama" required></div>
+                            <datalist id="list_pegawai"></datalist>
+                            
+                            <div class="form-group">
+                                <label>Nama Lengkap (Ketik untuk mencari)</label>
+                                <input type="text" name="nama" id="form_nama" list="list_pegawai" placeholder="Ketik nama pegawai..." autocomplete="off" required>
+                            </div>
+                            <div class="form-group">
+                                <label>NIK (Otomatis Terisi)</label>
+                                <input type="text" name="nik" id="form_nik" placeholder="NIK akan terisi otomatis" readonly required>
+                            </div>
                         </div>
                     </fieldset>
 
@@ -112,20 +106,22 @@ export function renderSertifikat(container, userRole = 'superadmin') {
                         </div>
                     </fieldset>
 
-                    <fieldset><legend>Penilaian & Dokumen</legend>
+                    <fieldset><legend>Penilaian & Dokumen Lampiran</legend>
                         <div class="grid-2">
                             <div class="form-group"><label>JPL (Jam Pelajaran)</label><input type="number" name="jpl" id="form_jpl" min="0" placeholder="Misal: 20"></div>
                             <div class="form-group"><label>Nilai SKP</label><input type="number" step="0.01" name="skp" id="form_skp" min="0" placeholder="Misal: 2.5"></div>
                             <div class="form-group" style="grid-column: span 2;">
-                                <label>Link File Sertifikat (Google Drive/Dropbox)</label>
-                                <input type="url" name="file_sertifikat" id="form_file_sertifikat" placeholder="https://...">
+                                <label>Upload File Sertifikat (PDF/JPG/PNG)</label>
+                                <input type="file" id="form_file_sertifikat" accept=".pdf, .jpg, .jpeg, .png">
+                                <input type="hidden" id="form_old_file_sertifikat">
+                                <div id="file_lama_info" style="font-size: 0.8rem; margin-top: 5px; color:#64748b;"></div>
                             </div>
                         </div>
                     </fieldset>
 
                     <div style="text-align: right; margin-top: 15px;">
                         <button type="button" class="btn" style="background:#94a3b8;" id="btnTutupFormSertif">Batal</button>
-                        <button type="submit" class="btn" style="background:#3b82f6;" id="btnSimpanSertif"><i class="fas fa-save"></i> Simpan Sertifikat</button>
+                        <button type="submit" class="btn" style="background:#3b82f6;" id="btnSimpanSertif"><i class="fas fa-save"></i> Simpan Data</button>
                     </div>
                 </form>
             </div>
@@ -153,21 +149,18 @@ function initLogikaSertifikat() {
     const modalTitle = document.getElementById('modalTitleSertif');
     const kontenDetail = document.getElementById('kontenDetailSertif');
     const inputCari = document.getElementById('inputCariSertif');
-
+    
+    // Variabel Penampung
     let currentData = [];
+    let daftarPegawai = []; // Untuk menyimpan referensi Nama -> NIK
 
     // ==========================================
-    // 1. LOAD DATA DARI DATABASE
+    // 1. LOAD DATA SERTIFIKAT & DATA PEGAWAI (AUTOCOMPLETE)
     // ==========================================
     async function loadData() {
         try {
             const { data, error } = await supabase.from('sertifikat_pegawai').select('*').order('created_at', { ascending: false });
-            
-            if (error) {
-                tbody.innerHTML = `<tr><td colspan="6" style="color:red; text-align:center;"><b>Error Supabase:</b> ${error.message}</td></tr>`;
-                return;
-            }
-            
+            if (error) throw error;
             currentData = data || []; 
             renderTabel(currentData); 
         } catch (err) {
@@ -175,8 +168,43 @@ function initLogikaSertifikat() {
         }
     }
 
+    async function loadDataPegawai() {
+        // Mengambil daftar nama dan NIK dari tabel utama 'pegawai'
+        const { data, error } = await supabase.from('pegawai').select('nik, nama');
+        if (!error && data) {
+            daftarPegawai = data;
+            const dataList = document.getElementById('list_pegawai');
+            // Masukkan nama-nama tersebut ke dalam datalist dropdown
+            dataList.innerHTML = data.map(p => `<option value="${p.nama}">`).join('');
+        }
+    }
+
+    // Eksekusi load data
+    loadData();
+    loadDataPegawai();
+
     // ==========================================
-    // 2. RENDER TABEL & PENCARIAN
+    // 2. LOGIKA AUTO-FILL NIK BERDASARKAN NAMA
+    // ==========================================
+    const inputNama = document.getElementById('form_nama');
+    const inputNik = document.getElementById('form_nik');
+
+    inputNama.addEventListener('input', (e) => {
+        const namaDipilih = e.target.value;
+        // Cari apakah nama yang diketik ada di database pegawai
+        const pegawaiDitemukan = daftarPegawai.find(p => p.nama === namaDipilih);
+        
+        if (pegawaiDitemukan) {
+            inputNik.value = pegawaiDitemukan.nik; // Isi NIK otomatis
+            inputNik.style.backgroundColor = '#e2e8f0'; // Visual cue bahwa ini read-only
+        } else {
+            inputNik.value = ''; // Kosongkan jika nama tidak valid/tidak ditemukan
+            inputNik.style.backgroundColor = '#f1f5f9';
+        }
+    });
+
+    // ==========================================
+    // 3. RENDER TABEL & PENCARIAN
     // ==========================================
     function renderTabel(data) {
         if (data.length === 0) {
@@ -193,7 +221,7 @@ function initLogikaSertifikat() {
                 <td>JPL: ${row.jpl || '0'} | SKP: ${row.skp || '0'}</td>
                 <td>
                     <button class="btn btn-detail" onclick="bukaDetailSertif('${row.id}')" title="Lihat Detail"><i class="fas fa-eye"></i></button>
-                    ${row.file_sertifikat ? `<a href="${row.file_sertifikat}" target="_blank" class="btn btn-link" title="Buka File"><i class="fas fa-external-link-alt"></i></a>` : ''}
+                    ${row.file_sertifikat ? `<a href="${row.file_sertifikat}" target="_blank" class="btn btn-link" title="Buka File"><i class="fas fa-file-download"></i></a>` : ''}
                     <button class="btn btn-edit" onclick="bukaFormSertif('${row.id}')" title="Edit"><i class="fas fa-edit"></i></button>
                     <button class="btn btn-hapus" onclick="hapusSertif('${row.id}')" title="Hapus"><i class="fas fa-trash"></i></button>
                 </td>
@@ -214,7 +242,7 @@ function initLogikaSertifikat() {
     }
 
     // ==========================================
-    // 3. FITUR DETAIL SERTIFIKAT
+    // 4. FITUR DETAIL SERTIFIKAT
     // ==========================================
     window.bukaDetailSertif = (id) => {
         const item = currentData.find(p => p.id === id);
@@ -227,7 +255,7 @@ function initLogikaSertifikat() {
             { key: 'tanggal_pelaksanaan', label: 'Tanggal Pelaksanaan' }, { key: 'judul_kegiatan', label: 'Judul Kegiatan' },
             { key: 'mulai', label: 'Mulai Kegiatan' }, { key: 'selesai', label: 'Selesai Kegiatan' },
             { key: 'jpl', label: 'Total JPL' }, { key: 'skp', label: 'Nilai SKP' },
-            { key: 'file_sertifikat', label: 'Link File' }
+            { key: 'file_sertifikat', label: 'Dokumen Lampiran' }
         ];
 
         kolomTampil.forEach(col => {
@@ -237,7 +265,7 @@ function initLogikaSertifikat() {
             
             // Format khusus jika link
             if(col.key === 'file_sertifikat' && item[col.key]) {
-                nilai = `<a href="${item[col.key]}" target="_blank" style="color:#0ea5e9;">Buka Dokumen</a>`;
+                nilai = `<a href="${item[col.key]}" target="_blank" style="color:#0ea5e9; text-decoration:none;"><i class="fas fa-external-link-alt"></i> Klik untuk Buka Lampiran</a>`;
             }
 
             div.innerHTML = `<span class="detail-label">${col.label}</span><span class="detail-value">${nilai}</span>`;
@@ -252,12 +280,14 @@ function initLogikaSertifikat() {
     }
 
     // ==========================================
-    // 4. FORM TAMBAH / EDIT
+    // 5. FORM TAMBAH / EDIT
     // ==========================================
     if(document.getElementById('btnTambahSertif')) {
         document.getElementById('btnTambahSertif').onclick = () => {
             form.reset(); 
             document.getElementById('form_id').value = ''; 
+            document.getElementById('form_old_file_sertifikat').value = '';
+            document.getElementById('file_lama_info').innerHTML = '';
             modalTitle.innerText = "Tambah Sertifikat Baru";
             modalForm.style.display = 'flex';
         };
@@ -271,41 +301,90 @@ function initLogikaSertifikat() {
 
         Object.keys(item).forEach(key => {
             const inputElement = document.getElementById(`form_${key}`);
-            if(inputElement) inputElement.value = item[key] || '';
+            if(inputElement && key !== 'file_sertifikat') {
+                inputElement.value = item[key] || '';
+            }
         });
+
+        // Penanganan khusus untuk edit file
+        document.getElementById('form_old_file_sertifikat').value = item.file_sertifikat || '';
+        const fileInfo = document.getElementById('file_lama_info');
+        if (item.file_sertifikat) {
+            fileInfo.innerHTML = `File saat ini: <a href="${item.file_sertifikat}" target="_blank">Lihat Dokumen</a> (Biarkan kosong jika tidak ingin mengganti file)`;
+        } else {
+            fileInfo.innerHTML = 'Belum ada file lampiran yang diupload.';
+        }
+
         modalForm.style.display = 'flex';
     };
 
+    // ==========================================
+    // 6. LOGIKA SIMPAN & UPLOAD KE STORAGE
+    // ==========================================
     if(form) {
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
             const btnSimpan = document.getElementById('btnSimpanSertif');
-            btnSimpan.innerText = "Menyimpan...";
+            btnSimpan.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Menyimpan Data & File...`;
+            btnSimpan.disabled = true;
             
+            // 1. Persiapan Data Teks
             const formData = new FormData(form);
             const dataObj = Object.fromEntries(formData.entries());
             const idData = dataObj.id;
             delete dataObj.id;
 
-            // Bersihkan data kosong
+            // Bersihkan data teks kosong
             Object.keys(dataObj).forEach(key => { 
                 if (dataObj[key] === "") dataObj[key] = null; 
             });
 
+            // 2. Logika Upload File ke Supabase Storage ('lampiran')
+            const fileInput = document.getElementById('form_file_sertifikat');
+            const file = fileInput.files[0];
+            let finalFileUrl = document.getElementById('form_old_file_sertifikat').value; // Default pakai file lama
+
+            if (file) {
+                // Buat nama file unik (Timestamp_NamaAsli) untuk menghindari file tertimpa
+                const fileExt = file.name.split('.').pop();
+                const uniqueFileName = `${Date.now()}_${Math.random().toString(36).substring(2,9)}.${fileExt}`;
+                
+                // Proses Upload
+                const { data: uploadData, error: uploadError } = await supabase.storage
+                    .from('lampiran')
+                    .upload(uniqueFileName, file, { cacheControl: '3600', upsert: false });
+
+                if (uploadError) {
+                    alert("Gagal mengupload file ke Storage Supabase!\nPastikan nama bucket adalah 'lampiran' dan RLS Policy Storage sudah dibuka.\n\nPesan: " + uploadError.message);
+                    btnSimpan.innerHTML = `<i class="fas fa-save"></i> Simpan Sertifikat`;
+                    btnSimpan.disabled = false;
+                    return; // Hentikan proses simpan jika upload gagal
+                }
+
+                // Ambil URL Publik hasil upload
+                const { data: publicUrlData } = supabase.storage.from('lampiran').getPublicUrl(uniqueFileName);
+                finalFileUrl = publicUrlData.publicUrl;
+            }
+
+            // Gabungkan URL file ke dalam objek yang akan disimpan ke database
+            dataObj.file_sertifikat = finalFileUrl === "" ? null : finalFileUrl;
+
+            // 3. Simpan ke Database
             if (idData) {
                 await supabase.from('sertifikat_pegawai').update(dataObj).eq('id', idData);
             } else {
                 await supabase.from('sertifikat_pegawai').insert([dataObj]);
             }
             
-            btnSimpan.innerHTML = `<i class="fas fa-save"></i> Simpan Sertifikat`;
+            btnSimpan.innerHTML = `<i class="fas fa-save"></i> Simpan Data`;
+            btnSimpan.disabled = false;
             modalForm.style.display = 'none';
-            loadData();
+            loadData(); // Refresh tabel
         });
     }
 
     // ==========================================
-    // 5. FITUR HAPUS
+    // 7. FITUR HAPUS
     // ==========================================
     window.hapusSertif = async (id) => {
         if(confirm('Yakin ingin menghapus sertifikat ini? Data tidak bisa dikembalikan.')) {
@@ -317,7 +396,4 @@ function initLogikaSertifikat() {
     if(document.getElementById('btnTutupFormSertif')) {
         document.getElementById('btnTutupFormSertif').onclick = () => modalForm.style.display = 'none';
     }
-
-    // Load data awal
-    loadData();
 }
