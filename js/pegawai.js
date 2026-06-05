@@ -4,60 +4,53 @@ import Papa from 'https://cdn.jsdelivr.net/npm/papaparse@5.4.1/+esm';
 export function renderPegawai(container, userRole = 'superadmin') {
     container.innerHTML = `
         <style>
-            .btn { padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; color: white; font-weight: 600; display: inline-flex; align-items: center; gap: 5px; }
-            .btn-edit { background: #f59e0b; padding: 6px 10px; font-size: 0.85rem;}
-            .btn-hapus { background: #ef4444; padding: 6px 10px; font-size: 0.85rem;}
-            .btn-detail { background: #0ea5e9; padding: 6px 10px; font-size: 0.85rem; margin-right: 5px;}
-            .btn-tambah { background: #10b981; }
-            .btn-import { background: #0284c7; }
+            /* TOMBOL MODERN */
+            .btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; color: white; font-weight: 500; font-size: 0.875rem; display: inline-flex; align-items: center; gap: 8px; transition: all 0.2s ease; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); }
+            .btn:hover { transform: translateY(-1px); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
+            .btn-edit { background: #f59e0b; padding: 6px 12px; font-size: 0.8rem;}
+            .btn-hapus { background: #ef4444; padding: 6px 12px; font-size: 0.8rem;}
+            .btn-detail { background: #0ea5e9; padding: 6px 12px; font-size: 0.8rem; margin-right: 5px;}
+            .btn-tambah { background: #0f172a; } /* Hitam pekat modern */
+            .btn-tambah:hover { background: #1e293b; }
+            .btn-import { background: #64748b; }
+            .btn-excel { background: #10b981; }
+            .btn-pdf { background: #f43f5e; }
+            .btn-link { background: #f1f5f9; color: #475569; padding: 6px 12px; font-size: 0.8rem; border: 1px solid #cbd5e1; }
+            .btn-link:hover { background: #e2e8f0; color: #0f172a; }
             
-            /* Tombol Export */
-            .btn-excel { background: #16a34a; }
-            .btn-pdf { background: #dc2626; }
+            /* TABEL MODERN SAAS */
+            .table-container { background: white; border-radius: 10px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); overflow: hidden; margin-top: 15px;}
+            table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+            th, td { padding: 14px 20px; text-align: left; }
+            th { background: #f8fafc; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.75rem; border-bottom: 1px solid #e2e8f0; }
+            td { color: #334155; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+            tbody tr:hover { background-color: #f8fafc; }
+            tbody tr:last-child td { border-bottom: none; }
             
-            table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; font-size: 0.9rem;}
-            th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e2e8f0; }
-            th { background: #f8fafc; }
+            /* TOOLBAR */
+            .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; background: white; padding: 16px 20px; border-radius: 10px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05); }
+            .filter-group { display: flex; gap: 12px; flex: 1; }
+            .filter-group input, .filter-group select { padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 6px; outline: none; transition: all 0.2s; background: #f8fafc; font-size: 0.875rem; color: #334155; }
+            .filter-group input:focus, .filter-group select:focus { border-color: #0ea5e9; background: white; box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1); }
+            .filter-group input { width: 300px; }
             
-            .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-            .filter-group { display: flex; gap: 10px; flex: 1; }
-            .filter-group input, .filter-group select { padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 4px; outline: none; }
-            .filter-group input { width: 250px; }
+            /* MODAL SCROLL PENUH */
+            .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); align-items: flex-start; justify-content: center; z-index: 9999; padding: 20px; }
+            .modal-content { background: white; padding: 32px; border-radius: 12px; width: 900px; max-width: 100%; max-height: 90vh; overflow-y: auto; margin-top: 2vh; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); border: 1px solid #e2e8f0;}
             
-            /* CSS AGAR BISA SCROLL PENUH */
-            .modal { 
-                display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-                background: rgba(0,0,0,0.6); 
-                align-items: flex-start; 
-                justify-content: center; 
-                z-index: 9999; 
-                padding: 20px; 
-            }
+            /* FORM MODERN */
+            .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;}
+            .form-group label { display: block; font-weight: 600; font-size: 0.85rem; color: #475569; margin-bottom: 6px;}
+            .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 6px; outline: none; background: #f8fafc; transition: all 0.2s; font-size: 0.9rem;}
+            .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: #3b82f6; background: white; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
+            .form-group input[readonly] { background: #e2e8f0; cursor: not-allowed; color: #64748b; }
             
-            .modal-content { 
-                background: white; padding: 30px; border-radius: 8px; 
-                width: 900px; 
-                max-width: 100%; 
-                max-height: 90vh; 
-                overflow-y: auto; 
-                margin-top: 2vh; 
-            }
-            
-            .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;}
-            .form-group label { display: block; font-weight: 600; font-size: 0.85rem; color: #475569; margin-bottom: 4px;}
-            .form-group input, .form-group select { width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; outline: none;}
-            .form-group input:focus, .form-group select:focus { border-color: #3b82f6; }
-            .form-group input[readonly] { background: #f1f5f9; cursor: not-allowed; }
-            
-            fieldset { border: 1px solid #e2e8f0; padding: 15px; border-radius: 6px; margin-bottom: 15px; background: #fafafa;}
-            legend { font-weight: bold; background: #3b82f6; color: white; padding: 4px 10px; border-radius: 4px; font-size: 0.9rem;}
+            fieldset { border: 1px solid #e2e8f0; padding: 20px; border-radius: 8px; margin-bottom: 24px; background: white; box-shadow: 0 1px 2px rgba(0,0,0,0.02);}
+            legend { font-weight: 600; background: #f1f5f9; color: #334155; padding: 6px 14px; border-radius: 6px; font-size: 0.85rem; border: 1px solid #e2e8f0; letter-spacing: 0.02em;}
 
-            .detail-item { border-bottom: 1px dashed #e2e8f0; padding: 8px 0; display: flex; flex-direction: column;}
-            .detail-label { font-size: 0.75rem; color: #64748b; font-weight: 600; text-transform: uppercase;}
-            .detail-value { 
-                font-size: 0.95rem; color: #1e293b; font-weight: 500; margin-top: 3px;
-                word-wrap: break-word; white-space: normal; 
-            }
+            .detail-item { border-bottom: 1px solid #f1f5f9; padding: 12px 0; display: flex; flex-direction: column;}
+            .detail-label { font-size: 0.75rem; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;}
+            .detail-value { font-size: 0.95rem; color: #0f172a; font-weight: 500; margin-top: 6px; word-wrap: break-word; white-space: normal; }
         </style>
 
         <div class="toolbar">
