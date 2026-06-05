@@ -24,7 +24,7 @@ export function renderPegawai(container, userRole = 'superadmin') {
             .filter-group input, .filter-group select { padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 4px; outline: none; }
             .filter-group input { width: 250px; }
             
-            /* PERBAIKAN MODAL AGAR BISA DI-SCROLL PENUH */
+            /* CSS AGAR BISA SCROLL PENUH */
             .modal { 
                 display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
                 background: rgba(0,0,0,0.6); 
@@ -38,8 +38,8 @@ export function renderPegawai(container, userRole = 'superadmin') {
                 background: white; padding: 30px; border-radius: 8px; 
                 width: 900px; 
                 max-width: 100%; 
-                max-height: 90vh; 
-                overflow-y: auto; 
+                max-height: 90vh; /* Maksimal tinggi layar */
+                overflow-y: auto; /* Munculkan scrollbar otomatis jika konten memanjang */
                 margin-top: 2vh; 
             }
             
@@ -54,12 +54,9 @@ export function renderPegawai(container, userRole = 'superadmin') {
 
             .detail-item { border-bottom: 1px dashed #e2e8f0; padding: 8px 0; display: flex; flex-direction: column;}
             .detail-label { font-size: 0.75rem; color: #64748b; font-weight: 600; text-transform: uppercase;}
-            
-            /* PERBAIKAN TEKS AGAR TIDAK KELUAR BATAS / TERPOTONG */
             .detail-value { 
                 font-size: 0.95rem; color: #1e293b; font-weight: 500; margin-top: 3px;
-                word-wrap: break-word; 
-                white-space: normal; 
+                word-wrap: break-word; white-space: normal; 
             }
         </style>
 
@@ -73,7 +70,6 @@ export function renderPegawai(container, userRole = 'superadmin') {
             <div style="display: flex; gap: 10px;">
                 <button class="btn btn-excel" id="btnExportExcel"><i class="fas fa-file-excel"></i> Excel</button>
                 <button class="btn btn-pdf" id="btnExportPDF"><i class="fas fa-file-pdf"></i> PDF</button>
-                
                 <button class="btn btn-import" id="btnTriggerImport"><i class="fas fa-file-import"></i> Import CSV</button>
                 <input type="file" id="inputCSV" accept=".csv" style="display: none;">
                 <button class="btn btn-tambah" id="btnTambahBaru"><i class="fas fa-plus"></i> Tambah Pegawai</button>
@@ -92,6 +88,7 @@ export function renderPegawai(container, userRole = 'superadmin') {
                 <h3 id="modalTitle" style="margin-bottom: 15px; border-bottom: 1px solid #ccc; padding-bottom:10px;">Form Pegawai</h3>
                 <form id="formPegawai">
                     <input type="hidden" name="id_pegawai" id="form_id_pegawai">
+                    
                     <fieldset><legend>Data Pribadi & Kontak</legend>
                         <div class="grid-2">
                             <div class="form-group"><label>NIK</label><input type="text" name="nik" id="form_nik" required></div>
@@ -119,6 +116,7 @@ export function renderPegawai(container, userRole = 'superadmin') {
                             <div class="form-group" style="grid-column: span 2;"><label>Alamat</label><input type="text" name="alamat" id="form_alamat"></div>
                         </div>
                     </fieldset>
+
                     <fieldset><legend>Data Kepegawaian & RS</legend>
                         <div class="grid-2">
                             <div class="form-group"><label>NIP</label><input type="text" name="nip" id="form_nip"></div>
@@ -149,6 +147,26 @@ export function renderPegawai(container, userRole = 'superadmin') {
                             <div class="form-group"><label>TMT Pensiun</label><input type="date" name="tmt_pensiun" id="form_tmt_pensiun"></div>
                         </div>
                     </fieldset>
+
+                    <fieldset><legend>Pendidikan & Identitas Negara</legend>
+                        <div class="grid-2">
+                            <div class="form-group"><label>Jenjang Pendidikan</label>
+                                <select name="jenjang" id="form_jenjang">
+                                    <option value="" hidden>Pilih...</option>
+                                    <option value="SD">SD</option><option value="SMP">SMP</option><option value="SMA">SMA</option>
+                                    <option value="D1">D1</option><option value="D3">D3</option><option value="D4">D4</option>
+                                    <option value="S1">S1</option><option value="Profesi">Profesi</option><option value="Spesialis">Spesialis</option>
+                                    <option value="Magister">Magister</option><option value="Konsultan">Konsultan</option>
+                                </select>
+                            </div>
+                            <div class="form-group"><label>Fakultas</label><input type="text" name="fakultas" id="form_fakultas"></div>
+                            <div class="form-group"><label>Jurusan</label><input type="text" name="jurusan" id="form_jurusan"></div>
+                            <div class="form-group"><label>No BPJS Kesehatan</label><input type="text" name="no_bpjsn" id="form_no_bpjsn"></div>
+                            <div class="form-group"><label>No BPJS TK/Taspen</label><input type="text" name="no_bpjsket_taspen" id="form_no_bpjsket_taspen"></div>
+                            <div class="form-group"><label>NPWP</label><input type="text" name="npwp" id="form_npwp"></div>
+                        </div>
+                    </fieldset>
+
                     <div style="text-align: right; margin-top: 15px;">
                         <button type="button" class="btn" style="background:#94a3b8;" id="btnTutupModal">Batal</button>
                         <button type="submit" class="btn" style="background:#3b82f6;" id="btnSimpanData"><i class="fas fa-save"></i> Simpan Data</button>
@@ -202,6 +220,7 @@ function initLogikaPegawai(userRole) {
                 return;
             }
             try {
+                // Catatan: Menggunakan currentData utuh agar 32 kolomnya masuk ke file Excel
                 const worksheet = XLSX.utils.json_to_sheet(currentData);
                 const workbook = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(workbook, worksheet, "Data Pegawai");
@@ -221,8 +240,9 @@ function initLogikaPegawai(userRole) {
             try {
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF('landscape'); 
-                doc.text("Laporan Data Pegawai", 14, 15);
+                doc.text("Laporan Data Pegawai Utama", 14, 15);
                 
+                // Di PDF sengaja tidak 32 kolom karena kertasnya tidak muat
                 const tableColumn = ["NIK", "Nama", "Kelompok Pegawai", "Jabatan", "Ruangan", "Status"];
                 const tableRows = [];
                 
@@ -446,12 +466,14 @@ function initLogikaPegawai(userRole) {
     }
 
     // ==========================================
-    // 6. FITUR MODAL DETAIL & FORM CRUD
+    // 6. FITUR MODAL DETAIL (30 DATA LENGKAP) & FORM CRUD
     // ==========================================
     window.bukaDetail = (id) => {
         const pegawai = currentData.find(p => p.id_pegawai == id);
         if(!pegawai) return;
         kontenDetail.innerHTML = '';
+        
+        // KITA KEMBALIKAN SEMUA DAFTAR VARIABEL YANG SEBELUMNYA SAYA HAPUS DI SINI:
         const kolomTampil = [
             { key: 'nik', label: 'NIK' }, { key: 'nip', label: 'NIP' }, { key: 'nama', label: 'Nama Lengkap' },
             { key: 'tempat_lahir', label: 'Tempat Lahir' }, { key: 'tanggal_lahir', label: 'Tgl Lahir' },
@@ -484,6 +506,7 @@ function initLogikaPegawai(userRole) {
     if(document.getElementById('btnTutupDetail')) {
         document.getElementById('btnTutupDetail').onclick = () => modalDetail.style.display = 'none';
     }
+    
     if(document.getElementById('btnTambahBaru')) {
         document.getElementById('btnTambahBaru').onclick = () => {
             form.reset(); 
@@ -494,6 +517,7 @@ function initLogikaPegawai(userRole) {
             modalForm.style.display = 'flex';
         };
     }
+    
     window.bukaForm = (id) => {
         form.reset(); 
         modalTitle.innerText = "Edit Data Pegawai";
