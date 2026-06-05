@@ -6,7 +6,7 @@ import { renderPegawaiKeluar } from './pegawai-keluar.js';
 import { renderSIK } from './sik.js';
 import { renderSTR } from './str.js';
 import { renderSertifikat } from './sertifikat.js';
-// import { renderSKP } from './skp.js';
+import { renderSKP } from './skp.js';
 
 window.loadPage = (page, element = null) => {
     const container = document.getElementById('app-content');
@@ -47,18 +47,13 @@ window.loadPage = (page, element = null) => {
             renderSTR(container); 
             break;
         case 'sertifikat': 
-         pageTitle.innerText = "SERTIFIKAT PEGAWAI"; 
-         renderSertifikat(container);
-         break;
-        
+            pageTitle.innerText = "SERTIFIKAT PEGAWAI"; 
+            renderSertifikat(container);
+             break;
         case 'skp': 
-            pageTitle.innerText = "SASARAN KINERJA PEGAWAI (SKP)"; 
-            // Jika file skp.js sudah ada, ganti baris bawah dengan: renderSKP(container);
-            container.innerHTML = `<div style="background:white; padding:30px; border-radius:8px; text-align:center;">
-                <i class="fas fa-tools" style="font-size:3rem; color:#cbd5e1; margin-bottom:15px;"></i>
-                <h3 style="color:#475569;">Modul Sasaran Kinerja Pegawai Sedang Dalam Pengembangan</h3>
-            </div>`;
-            break;
+             pageTitle.innerText = "SASARAN KINERJA PEGAWAI (SKP)"; 
+             renderSKP(container, currentRole);
+             break;
     }
 };
 
