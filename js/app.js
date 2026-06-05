@@ -8,6 +8,9 @@ import { renderSTR } from './str.js';
 import { renderSertifikat } from './sertifikat.js';
 import { renderSKP } from './skp.js';
 
+// IMPORT FILE PENGATURAN BARU
+import { renderPengaturan } from './pengaturan.js';
+
 window.loadPage = (page, element = null) => {
     const container = document.getElementById('app-content');
     const pageTitle = document.getElementById('page-title');
@@ -48,12 +51,26 @@ window.loadPage = (page, element = null) => {
             break;
         case 'sertifikat': 
             pageTitle.innerText = "SERTIFIKAT PEGAWAI"; 
-            renderSertifikat(container);
-             break;
+            renderSertifikat(container, currentRole);
+            break;
         case 'skp': 
-             pageTitle.innerText = "SASARAN KINERJA PEGAWAI (SKP)"; 
-             renderSKP(container, currentRole);
-             break;
+            pageTitle.innerText = "SASARAN KINERJA PEGAWAI (SKP)"; 
+            renderSKP(container, currentRole);
+            break;
+            
+        // --- ROUTE UNTUK MENU PENGATURAN ---
+        case 'pengaturan-golongan': 
+            pageTitle.innerText = "PENGATURAN MASTER GOLONGAN"; 
+            renderPengaturan(container, 'golongan');
+            break;
+        case 'pengaturan-jabatan': 
+            pageTitle.innerText = "PENGATURAN MASTER JABATAN"; 
+            renderPengaturan(container, 'jabatan');
+            break;
+        case 'pengaturan-ruangan': 
+            pageTitle.innerText = "PENGATURAN MASTER RUANGAN"; 
+            renderPengaturan(container, 'ruangan');
+            break;
     }
 };
 
