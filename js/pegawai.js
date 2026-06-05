@@ -28,7 +28,7 @@ export function renderPegawai(container, userRole = 'superadmin') {
             .modal { 
                 display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
                 background: rgba(0,0,0,0.6); 
-                align-items: flex-start; /* Berubah dari center agar atasnya tidak terpotong */
+                align-items: flex-start; 
                 justify-content: center; 
                 z-index: 9999; 
                 padding: 20px; 
@@ -38,8 +38,8 @@ export function renderPegawai(container, userRole = 'superadmin') {
                 background: white; padding: 30px; border-radius: 8px; 
                 width: 900px; 
                 max-width: 100%; 
-                max-height: 90vh; /* Maksimal tinggi layar */
-                overflow-y: auto; /* Munculkan scrollbar otomatis jika konten memanjang */
+                max-height: 90vh; 
+                overflow-y: auto; 
                 margin-top: 2vh; 
             }
             
@@ -135,9 +135,19 @@ export function renderPegawai(container, userRole = 'superadmin') {
                                     <option value="" hidden>Pilih...</option><option value="Management">Management</option><option value="Tenaga Medis">Tenaga Medis</option><option value="Tenaga Kesehatan">Tenaga Kesehatan</option><option value="Tenaga Penunjang Medis">Tenaga Penunjang Medis</option><option value="Tenaga Administrasi">Tenaga Administrasi</option><option value="Tenaga Non Administrasi">Tenaga Non Administrasi</option>
                                 </select>
                             </div>
-                            <div class="form-group"><label>Golongan</label><input type="text" name="gol" id="form_gol"></div>
-                            <div class="form-group"><label>Jabatan</label><input type="text" name="jabatan" id="form_jabatan"></div>
-                            <div class="form-group"><label>Ruangan</label><input type="text" name="ruangan" id="form_ruangan"></div>
+                            
+                            <div class="form-group">
+                                <label>Golongan</label>
+                                <select name="gol" id="form_gol"><option value="" hidden>Pilih Golongan...</option></select>
+                            </div>
+                            <div class="form-group">
+                                <label>Jabatan</label>
+                                <select name="jabatan" id="form_jabatan"><option value="" hidden>Pilih Jabatan...</option></select>
+                            </div>
+                            <div class="form-group">
+                                <label>Ruangan</label>
+                                <select name="ruangan" id="form_ruangan"><option value="" hidden>Pilih Ruangan...</option></select>
+                            </div>
                             <div class="form-group"><label>TMT Pangkat</label><input type="date" name="tmt_pangkat" id="form_tmt_pangkat"></div>
                             <div class="form-group"><label>TMT Berikutnya</label><input type="date" name="tmt_berikutnya" id="form_tmt_berikutnya"></div>
                             <div class="form-group"><label>TMT CPNS</label><input type="date" name="tmt_cpns" id="form_tmt_cpns"></div>
@@ -215,37 +225,25 @@ function initLogikaPegawai(userRole) {
 
     if(btnExportExcel) {
         btnExportExcel.addEventListener('click', () => {
-            if (!currentData || currentData.length === 0) {
-                alert("Data belum termuat atau tabel kosong. Tidak ada yang bisa di-export.");
-                return;
-            }
+            if (!currentData || currentData.length === 0) return alert("Data kosong.");
             try {
-                // Catatan: Menggunakan currentData utuh agar 32 kolomnya masuk ke file Excel
                 const worksheet = XLSX.utils.json_to_sheet(currentData);
                 const workbook = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(workbook, worksheet, "Data Pegawai");
                 XLSX.writeFile(workbook, `Data_Pegawai_${new Date().toISOString().split('T')[0]}.xlsx`);
-            } catch (err) {
-                alert("Gagal memproses Excel. Pastikan Library SheetJS sudah terpasang di index.html!");
-            }
+            } catch (err) { alert("Gagal memproses Excel."); }
         });
     }
 
     if(btnExportPDF) {
         btnExportPDF.addEventListener('click', () => {
-            if (!currentData || currentData.length === 0) {
-                alert("Data belum termuat atau tabel kosong. Tidak ada yang bisa di-export.");
-                return;
-            }
+            if (!currentData || currentData.length === 0) return alert("Data kosong.");
             try {
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF('landscape'); 
                 doc.text("Laporan Data Pegawai Utama", 14, 15);
-                
-                // Di PDF sengaja tidak 32 kolom karena kertasnya tidak muat
                 const tableColumn = ["NIK", "Nama", "Kelompok Pegawai", "Jabatan", "Ruangan", "Status"];
                 const tableRows = [];
-                
                 currentData.forEach(pegawai => {
                     const pegawaiData = [
                         pegawai.nik || '-', pegawai.nama || '-', pegawai.kelompok_pegawai || '-', 
@@ -253,42 +251,60 @@ function initLogikaPegawai(userRole) {
                     ];
                     tableRows.push(pegawaiData);
                 });
-                
                 doc.autoTable({ head: [tableColumn], body: tableRows, startY: 20, theme: 'grid', styles: { fontSize: 8 }});
                 doc.save(`Data_Pegawai_${new Date().toISOString().split('T')[0]}.pdf`);
-            } catch (err) {
-                alert("Gagal memproses PDF. Pastikan Library jsPDF & AutoTable terpasang di index.html!");
-            }
+            } catch (err) { alert("Gagal memproses PDF."); }
         });
     }
 
     // ==========================================
-    // 2. LOAD DATA DENGAN PENANGANAN ERROR
+    // 2. LOAD DATA DROPDOWN MASTER PENGATURAN
     // ==========================================
-    async function loadData() {
+    async function loadMasterDropdowns() {
         try {
-            const { data, error } = await supabase.from('pegawai').select('*');
-            
-            if (error) {
-                tbody.innerHTML = `<tr><td colspan="6" style="color:red; text-align:center; padding: 20px;">
-                    <i class="fas fa-exclamation-triangle"></i> <b>Koneksi Database Gagal:</b> ${error.message}
-                </td></tr>`;
-                return;
-            }
-            
-            currentData = data || []; 
-            updateOpsiFilter(); 
-            renderTabel(currentData); 
+            const [resGol, resJab, resRua] = await Promise.all([
+                supabase.from('master_golongan').select('nama_golongan').order('nama_golongan', { ascending: true }),
+                supabase.from('master_jabatan').select('nama_jabatan').order('nama_jabatan', { ascending: true }),
+                supabase.from('master_ruangan').select('nama_ruangan').order('nama_ruangan', { ascending: true })
+            ]);
 
-        } catch (err) {
-            tbody.innerHTML = `<tr><td colspan="6" style="color:red; text-align:center; padding: 20px;">
-                <i class="fas fa-exclamation-triangle"></i> <b>Sistem Gagal Memuat Data:</b> ${err.message}
-            </td></tr>`;
+            if (resGol.data) {
+                document.getElementById('form_gol').innerHTML = '<option value="" hidden>Pilih Golongan...</option>' + 
+                    resGol.data.map(d => `<option value="${d.nama_golongan}">${d.nama_golongan}</option>`).join('');
+            }
+            if (resJab.data) {
+                document.getElementById('form_jabatan').innerHTML = '<option value="" hidden>Pilih Jabatan...</option>' + 
+                    resJab.data.map(d => `<option value="${d.nama_jabatan}">${d.nama_jabatan}</option>`).join('');
+            }
+            if (resRua.data) {
+                document.getElementById('form_ruangan').innerHTML = '<option value="" hidden>Pilih Ruangan...</option>' + 
+                    resRua.data.map(d => `<option value="${d.nama_ruangan}">${d.nama_ruangan}</option>`).join('');
+            }
+        } catch (error) {
+            console.error("Gagal menarik data master:", error);
         }
     }
 
     // ==========================================
-    // 3. RENDER TABEL & FILTER
+    // 3. LOAD DATA MASTER DARI DATABASE
+    // ==========================================
+    async function loadData() {
+        try {
+            const { data, error } = await supabase.from('pegawai').select('*');
+            if (error) {
+                tbody.innerHTML = `<tr><td colspan="6" style="color:red; text-align:center;"><b>Koneksi Database Gagal:</b> ${error.message}</td></tr>`;
+                return;
+            }
+            currentData = data || []; 
+            updateOpsiFilter(); 
+            renderTabel(currentData); 
+        } catch (err) {
+            tbody.innerHTML = `<tr><td colspan="6" style="color:red; text-align:center;"><b>Sistem Gagal Memuat Data:</b> ${err.message}</td></tr>`;
+        }
+    }
+
+    // ==========================================
+    // 4. RENDER TABEL & FILTER
     // ==========================================
     function renderTabel(data) {
         if (data.length === 0) {
@@ -336,7 +352,7 @@ function initLogikaPegawai(userRole) {
     if(filterStatus) filterStatus.addEventListener('change', terapkanPencarianDanFilter);
 
     // ==========================================
-    // 4. AUTO HITUNG MASA KERJA & TMT CPNS
+    // 5. AUTO HITUNG MASA KERJA & TMT CPNS
     // ==========================================
     const inpKelompokPegawai = document.getElementById('form_kelompok_pegawai');
     const inptmtPangkat = document.getElementById('form_tmt_pangkat');
@@ -378,48 +394,32 @@ function initLogikaPegawai(userRole) {
     }
 
     function hitungMasaKerja() {
-        if (!inpMasukRS.value) {
-            inpMasaKerjaRS.value = '';
-            return;
-        }
+        if (!inpMasukRS.value) { inpMasaKerjaRS.value = ''; return; }
         const start = new Date(inpMasukRS.value);
         const end = new Date();
-        if (start > end) {
-            inpMasaKerjaRS.value = '0 Tahun 0 Bulan 0 Hari';
-            return;
-        }
+        if (start > end) { inpMasaKerjaRS.value = '0 Tahun 0 Bulan 0 Hari'; return; }
         let years = end.getFullYear() - start.getFullYear();
         let months = end.getMonth() - start.getMonth();
         let days = end.getDate() - start.getDate();
-        if (days < 0) {
-            months--;
-            const prevMonth = new Date(end.getFullYear(), end.getMonth(), 0);
-            days += prevMonth.getDate();
-        }
-        if (months < 0) {
-            years--;
-            months += 12;
-        }
+        if (days < 0) { months--; const prevMonth = new Date(end.getFullYear(), end.getMonth(), 0); days += prevMonth.getDate(); }
+        if (months < 0) { years--; months += 12; }
         inpMasaKerjaRS.value = `${years} Tahun ${months} Bulan ${days} Hari`;
     }
     if(inpMasukRS) inpMasukRS.addEventListener('input', hitungMasaKerja);
 
     // ==========================================
-    // 5. IMPORT CSV
+    // 6. IMPORT CSV
     // ==========================================
     if(btnTriggerImport) btnTriggerImport.onclick = () => inputCSV.click();
-
     if(inputCSV) {
         inputCSV.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (!file) return;
-
             btnTriggerImport.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Parsing CSV...`;
             btnTriggerImport.disabled = true;
 
             Papa.parse(file, {
-                header: true,
-                skipEmptyLines: true,
+                header: true, skipEmptyLines: true,
                 complete: async function(results) {
                     const sanitizedData = results.data.map(row => {
                         const cleanRow = {};
@@ -433,26 +433,11 @@ function initLogikaPegawai(userRole) {
                         if (!cleanRow.password) cleanRow.password = 'masuk123';
                         return cleanRow;
                     });
-
-                    if (sanitizedData.length === 0) {
-                        alert("File CSV kosong atau tidak memiliki baris data valid.");
-                        resetTombolImport();
-                        return;
-                    }
-
+                    if (sanitizedData.length === 0) { alert("File CSV kosong."); resetTombolImport(); return; }
                     btnTriggerImport.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Mengirim...`;
                     const { error } = await supabase.from('pegawai').insert(sanitizedData);
-
-                    if (error) {
-                        alert("Gagal melakukan import data massal.\nPesan Error: " + error.message);
-                    } else {
-                        alert(`Sukses! Berhasil menambahkan ${sanitizedData.length} data pegawai secara massal.`);
-                        loadData(); 
-                    }
-                    resetTombolImport();
-                },
-                error: function(err) {
-                    alert("Gagal membaca file CSV: " + err.message);
+                    if (error) alert("Gagal melakukan import massal: " + error.message);
+                    else { alert(`Sukses menambahkan ${sanitizedData.length} data pegawai.`); loadData(); }
                     resetTombolImport();
                 }
             });
@@ -461,19 +446,17 @@ function initLogikaPegawai(userRole) {
 
     function resetTombolImport() {
         btnTriggerImport.innerHTML = `<i class="fas fa-file-import"></i> Import CSV`;
-        btnTriggerImport.disabled = false;
-        inputCSV.value = ''; 
+        btnTriggerImport.disabled = false; inputCSV.value = ''; 
     }
 
     // ==========================================
-    // 6. FITUR MODAL DETAIL (30 DATA LENGKAP) & FORM CRUD
+    // 7. FITUR MODAL DETAIL & FORM CRUD
     // ==========================================
     window.bukaDetail = (id) => {
         const pegawai = currentData.find(p => p.id_pegawai == id);
         if(!pegawai) return;
         kontenDetail.innerHTML = '';
         
-        // KITA KEMBALIKAN SEMUA DAFTAR VARIABEL YANG SEBELUMNYA SAYA HAPUS DI SINI:
         const kolomTampil = [
             { key: 'nik', label: 'NIK' }, { key: 'nip', label: 'NIP' }, { key: 'nama', label: 'Nama Lengkap' },
             { key: 'tempat_lahir', label: 'Tempat Lahir' }, { key: 'tanggal_lahir', label: 'Tgl Lahir' },
@@ -565,6 +548,7 @@ function initLogikaPegawai(userRole) {
         document.getElementById('btnTutupModal').onclick = () => modalForm.style.display = 'none';
     }
 
-    // Eksekusi load data saat halaman dimuat
-    loadData();
+    // Eksekusi load data
+    loadMasterDropdowns(); // <-- Mengambil data dropdown master (Golongan, Jabatan, Ruangan)
+    loadData(); // <-- Mengambil data tabel utama
 }
