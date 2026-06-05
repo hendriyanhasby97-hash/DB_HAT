@@ -24,8 +24,24 @@ export function renderPegawai(container, userRole = 'superadmin') {
             .filter-group input, .filter-group select { padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 4px; outline: none; }
             .filter-group input { width: 250px; }
             
-            .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); align-items: center; justify-content: center; z-index: 100;}
-            .modal-content { background: white; padding: 25px; border-radius: 8px; width: 800px; max-height: 90vh; overflow-y: auto; }
+            /* PERBAIKAN MODAL AGAR BISA DI-SCROLL PENUH */
+            .modal { 
+                display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+                background: rgba(0,0,0,0.6); 
+                align-items: flex-start; /* Berubah dari center agar atasnya tidak terpotong */
+                justify-content: center; 
+                z-index: 9999; 
+                padding: 20px; 
+            }
+            
+            .modal-content { 
+                background: white; padding: 30px; border-radius: 8px; 
+                width: 900px; 
+                max-width: 100%; 
+                max-height: 90vh; 
+                overflow-y: auto; 
+                margin-top: 2vh; 
+            }
             
             .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;}
             .form-group label { display: block; font-weight: 600; font-size: 0.85rem; color: #475569; margin-bottom: 4px;}
@@ -38,7 +54,13 @@ export function renderPegawai(container, userRole = 'superadmin') {
 
             .detail-item { border-bottom: 1px dashed #e2e8f0; padding: 8px 0; display: flex; flex-direction: column;}
             .detail-label { font-size: 0.75rem; color: #64748b; font-weight: 600; text-transform: uppercase;}
-            .detail-value { font-size: 0.95rem; color: #1e293b; font-weight: 500; margin-top: 3px;}
+            
+            /* PERBAIKAN TEKS AGAR TIDAK KELUAR BATAS / TERPOTONG */
+            .detail-value { 
+                font-size: 0.95rem; color: #1e293b; font-weight: 500; margin-top: 3px;
+                word-wrap: break-word; 
+                white-space: normal; 
+            }
         </style>
 
         <div class="toolbar">
@@ -168,6 +190,11 @@ function initLogikaPegawai(userRole) {
     // ==========================================
     // 1. FUNGSI EXPORT EXCEL & PDF
     // ==========================================
+    if (userRole !== 'superadmin' && userRole !== 'admin') {
+        if(btnExportExcel) btnExportExcel.style.display = 'none';
+        if(btnExportPDF) btnExportPDF.style.display = 'none';
+    }
+
     if(btnExportExcel) {
         btnExportExcel.addEventListener('click', () => {
             if (!currentData || currentData.length === 0) {
@@ -289,7 +316,137 @@ function initLogikaPegawai(userRole) {
     if(filterStatus) filterStatus.addEventListener('change', terapkanPencarianDanFilter);
 
     // ==========================================
-    // 4. FITUR MODAL DETAIL & FORM CRUD
+    // 4. AUTO HITUNG MASA KERJA & TMT CPNS
+    // ==========================================
+    const inpKelompokPegawai = document.getElementById('form_kelompok_pegawai');
+    const inptmtPangkat = document.getElementById('form_tmt_pangkat');
+    const inptmtCpns = document.getElementById('form_tmt_cpns');
+    const inptmtBerikutnya = document.getElementById('form_tmt_berikutnya');
+    const inpNIP = document.getElementById('form_nip');
+    const inpMasukRS = document.getElementById('form_masuk_rs');
+    const inpMasaKerjaRS = document.getElementById('form_masa_kerja_rs');
+
+    function cekStatusASN() {
+        if (!inpKelompokPegawai) return;
+        if (inpKelompokPegawai.value === 'ASN') {
+            inptmtPangkat.readOnly = false;
+            inptmtCpns.readOnly = false;
+            inptmtBerikutnya.readOnly = false;
+        } else {
+            inptmtPangkat.readOnly = true;
+            inptmtCpns.readOnly = true;
+            inptmtBerikutnya.readOnly = true;
+            inptmtPangkat.value = '';
+            inptmtCpns.value = '';
+            inptmtBerikutnya.value = '';
+        }
+    }
+    if(inpKelompokPegawai) inpKelompokPegawai.addEventListener('change', cekStatusASN);
+
+    if(inpNIP) {
+        inpNIP.addEventListener('input', () => {
+            let nip = inpNIP.value.replace(/[^0-9]/g, '');
+            if (nip.length >= 13) {
+                const year = nip.substring(5, 9);
+                const month = nip.substring(9, 11);
+                const day = nip.substring(11, 13);
+                if (year > 1900 && month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+                    inptmtCpns.value = `${year}-${month}-${day}`;
+                }
+            }
+        });
+    }
+
+    function hitungMasaKerja() {
+        if (!inpMasukRS.value) {
+            inpMasaKerjaRS.value = '';
+            return;
+        }
+        const start = new Date(inpMasukRS.value);
+        const end = new Date();
+        if (start > end) {
+            inpMasaKerjaRS.value = '0 Tahun 0 Bulan 0 Hari';
+            return;
+        }
+        let years = end.getFullYear() - start.getFullYear();
+        let months = end.getMonth() - start.getMonth();
+        let days = end.getDate() - start.getDate();
+        if (days < 0) {
+            months--;
+            const prevMonth = new Date(end.getFullYear(), end.getMonth(), 0);
+            days += prevMonth.getDate();
+        }
+        if (months < 0) {
+            years--;
+            months += 12;
+        }
+        inpMasaKerjaRS.value = `${years} Tahun ${months} Bulan ${days} Hari`;
+    }
+    if(inpMasukRS) inpMasukRS.addEventListener('input', hitungMasaKerja);
+
+    // ==========================================
+    // 5. IMPORT CSV
+    // ==========================================
+    if(btnTriggerImport) btnTriggerImport.onclick = () => inputCSV.click();
+
+    if(inputCSV) {
+        inputCSV.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            btnTriggerImport.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Parsing CSV...`;
+            btnTriggerImport.disabled = true;
+
+            Papa.parse(file, {
+                header: true,
+                skipEmptyLines: true,
+                complete: async function(results) {
+                    const sanitizedData = results.data.map(row => {
+                        const cleanRow = {};
+                        Object.keys(row).forEach(key => {
+                            let cleanKey = key.trim().toLowerCase().replace(/\s+/g, '_');
+                            let value = row[key] ? row[key].trim() : null;
+                            if (value === "") value = null;
+                            if (cleanKey === 'id_pegawai' && value === null) return; 
+                            cleanRow[cleanKey] = value;
+                        });
+                        if (!cleanRow.password) cleanRow.password = 'masuk123';
+                        return cleanRow;
+                    });
+
+                    if (sanitizedData.length === 0) {
+                        alert("File CSV kosong atau tidak memiliki baris data valid.");
+                        resetTombolImport();
+                        return;
+                    }
+
+                    btnTriggerImport.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Mengirim...`;
+                    const { error } = await supabase.from('pegawai').insert(sanitizedData);
+
+                    if (error) {
+                        alert("Gagal melakukan import data massal.\nPesan Error: " + error.message);
+                    } else {
+                        alert(`Sukses! Berhasil menambahkan ${sanitizedData.length} data pegawai secara massal.`);
+                        loadData(); 
+                    }
+                    resetTombolImport();
+                },
+                error: function(err) {
+                    alert("Gagal membaca file CSV: " + err.message);
+                    resetTombolImport();
+                }
+            });
+        });
+    }
+
+    function resetTombolImport() {
+        btnTriggerImport.innerHTML = `<i class="fas fa-file-import"></i> Import CSV`;
+        btnTriggerImport.disabled = false;
+        inputCSV.value = ''; 
+    }
+
+    // ==========================================
+    // 6. FITUR MODAL DETAIL & FORM CRUD
     // ==========================================
     window.bukaDetail = (id) => {
         const pegawai = currentData.find(p => p.id_pegawai == id);
@@ -303,7 +460,14 @@ function initLogikaPegawai(userRole) {
             { key: 'email', label: 'Email' }, { key: 'alamat', label: 'Alamat' },
             { key: 'status', label: 'Status Pegawai' }, { key: 'kelompok_pegawai', label: 'Kelp. Pegawai' },
             { key: 'kelompok_jabatan', label: 'Kelp. Jabatan' }, { key: 'gol', label: 'Golongan' },
-            { key: 'jabatan', label: 'Jabatan' }, { key: 'ruangan', label: 'Ruangan' }
+            { key: 'jabatan', label: 'Jabatan' }, { key: 'ruangan', label: 'Ruangan' },
+            { key: 'tmt_pangkat', label: 'TMT Pangkat' }, { key: 'tmt_berikutnya', label: 'TMT Berikutnya' },
+            { key: 'tmt_cpns', label: 'TMT CPNS' }, { key: 'masuk_rs', label: 'Masuk RS' },
+            { key: 'masa_kerja_rs', label: 'Masa Kerja RS' }, { key: 'rentang_bup', label: 'Rentang BUP' },
+            { key: 'tmt_pensiun', label: 'TMT Pensiun' }, { key: 'jenjang', label: 'Jenjang Pddk' },
+            { key: 'fakultas', label: 'Fakultas' }, { key: 'jurusan', label: 'Jurusan' },
+            { key: 'no_bpjsn', label: 'No BPJS Kesh' }, { key: 'no_bpjsket_taspen', label: 'No BPJS TK' },
+            { key: 'npwp', label: 'NPWP' }
         ];
 
         kolomTampil.forEach(item => {
@@ -325,6 +489,7 @@ function initLogikaPegawai(userRole) {
             form.reset(); 
             document.getElementById('form_id_pegawai').value = ''; 
             document.getElementById('form_password').value = 'masuk123';
+            cekStatusASN();
             modalTitle.innerText = "Tambah Master Pegawai Baru";
             modalForm.style.display = 'flex';
         };
@@ -338,6 +503,7 @@ function initLogikaPegawai(userRole) {
             const inputElement = document.getElementById(`form_${key}`);
             if(inputElement) inputElement.value = pegawai[key] || '';
         });
+        cekStatusASN();
         modalForm.style.display = 'flex';
     };
 
