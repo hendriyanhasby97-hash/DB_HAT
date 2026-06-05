@@ -10,6 +10,10 @@ export function renderSertifikat(container, userRole = 'superadmin') {
             .btn-tambah { background: #10b981; }
             .btn-link { background: #64748b; padding: 6px 10px; font-size: 0.85rem;}
             
+            /* Tombol Export */
+            .btn-excel { background: #16a34a; }
+            .btn-pdf { background: #dc2626; }
+            
             table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; font-size: 0.9rem;}
             th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e2e8f0; }
             th { background: #f8fafc; }
@@ -40,6 +44,9 @@ export function renderSertifikat(container, userRole = 'superadmin') {
                 <input type="text" id="inputCariSertif" placeholder="🔍 Cari NIK, Nama, atau Judul Kegiatan...">
             </div>
             <div style="display: flex; gap: 10px;">
+                <button class="btn btn-excel" id="btnExportExcelSertif"><i class="fas fa-file-excel"></i> Excel</button>
+                <button class="btn btn-pdf" id="btnExportPDFSertif"><i class="fas fa-file-pdf"></i> PDF</button>
+                
                 <button class="btn btn-tambah" id="btnTambahSertif"><i class="fas fa-plus"></i> Tambah Sertifikat</button>
             </div>
         </div>
@@ -138,10 +145,10 @@ export function renderSertifikat(container, userRole = 'superadmin') {
         </div>
     `;
 
-    initLogikaSertifikat();
+    initLogikaSertifikat(userRole);
 }
 
-function initLogikaSertifikat() {
+function initLogikaSertifikat(userRole) {
     const tbody = document.getElementById('tabelSertifikat');
     const modalForm = document.getElementById('modalFormSertifikat');
     const modalDetail = document.getElementById('modalDetailSertifikat');
@@ -150,9 +157,96 @@ function initLogikaSertifikat() {
     const kontenDetail = document.getElementById('kontenDetailSertif');
     const inputCari = document.getElementById('inputCariSertif');
     
+    // Tombol Export
+    const btnExportExcel = document.getElementById('btnExportExcelSertif');
+    const btnExportPDF = document.getElementById('btnExportPDFSertif');
+    
     // Variabel Penampung
     let currentData = [];
-    let daftarPegawai = []; // Untuk menyimpan referensi Nama -> NIK
+    let daftarPegawai = []; 
+
+    // ==========================================
+    // 0. LOGIKA EXPORT EXCEL & PDF
+    // ==========================================
+    // Sembunyikan tombol export jika login sebagai user/pegawai biasa
+    if (userRole !== 'superadmin' && userRole !== 'admin') {
+        if(btnExportExcel) btnExportExcel.style.display = 'none';
+        if(btnExportPDF) btnExportPDF.style.display = 'none';
+    }
+
+    if(btnExportExcel) {
+        btnExportExcel.addEventListener('click', () => {
+            if (!currentData || currentData.length === 0) {
+                alert("Data belum termuat atau tabel kosong. Tidak ada yang bisa di-export.");
+                return;
+            }
+            try {
+                // Menyiapkan data yang lebih rapi untuk Excel
+                const dataForExcel = currentData.map(item => ({
+                    "NIK": item.nik,
+                    "Nama Pegawai": item.nama,
+                    "No Sertifikat": item.no_sertifikat,
+                    "Jenis Sertifikat": item.jenis_sertifikat,
+                    "Judul Kegiatan": item.judul_kegiatan,
+                    "Tanggal Pelaksanaan": item.tanggal_pelaksanaan,
+                    "Mulai": item.mulai,
+                    "Selesai": item.selesai,
+                    "JPL": item.jpl,
+                    "Nilai SKP": item.skp,
+                    "Link File": item.file_sertifikat || "Tidak ada file"
+                }));
+
+                const worksheet = XLSX.utils.json_to_sheet(dataForExcel);
+                const workbook = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(workbook, worksheet, "Sertifikat Pegawai");
+                XLSX.writeFile(workbook, `Data_Sertifikat_Pegawai_${new Date().toISOString().split('T')[0]}.xlsx`);
+            } catch (err) {
+                alert("Gagal memproses Excel. Error: " + err.message);
+            }
+        });
+    }
+
+    if(btnExportPDF) {
+        btnExportPDF.addEventListener('click', () => {
+            if (!currentData || currentData.length === 0) {
+                alert("Data belum termuat atau tabel kosong. Tidak ada yang bisa di-export.");
+                return;
+            }
+            try {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF('landscape'); 
+                doc.text("Laporan Sertifikat & Kegiatan Pegawai", 14, 15);
+                
+                const tableColumn = ["NIK", "Nama Pegawai", "No Sertifikat", "Jenis", "Tanggal", "Judul Kegiatan", "JPL", "SKP"];
+                const tableRows = [];
+                
+                currentData.forEach(item => {
+                    const itemData = [
+                        item.nik || '-', 
+                        item.nama || '-', 
+                        item.no_sertifikat || '-', 
+                        item.jenis_sertifikat || '-',
+                        item.tanggal_pelaksanaan || '-', 
+                        item.judul_kegiatan || '-', 
+                        item.jpl || '0', 
+                        item.skp || '0'
+                    ];
+                    tableRows.push(itemData);
+                });
+                
+                doc.autoTable({ 
+                    head: [tableColumn], 
+                    body: tableRows, 
+                    startY: 20, 
+                    theme: 'grid', 
+                    styles: { fontSize: 8 }
+                });
+                doc.save(`Data_Sertifikat_Pegawai_${new Date().toISOString().split('T')[0]}.pdf`);
+            } catch (err) {
+                alert("Gagal memproses PDF. Error: " + err.message);
+            }
+        });
+    }
 
     // ==========================================
     // 1. LOAD DATA SERTIFIKAT & DATA PEGAWAI (AUTOCOMPLETE)
@@ -169,12 +263,10 @@ function initLogikaSertifikat() {
     }
 
     async function loadDataPegawai() {
-        // Mengambil daftar nama dan NIK dari tabel utama 'pegawai'
         const { data, error } = await supabase.from('pegawai').select('nik, nama');
         if (!error && data) {
             daftarPegawai = data;
             const dataList = document.getElementById('list_pegawai');
-            // Masukkan nama-nama tersebut ke dalam datalist dropdown
             dataList.innerHTML = data.map(p => `<option value="${p.nama}">`).join('');
         }
     }
@@ -191,14 +283,13 @@ function initLogikaSertifikat() {
 
     inputNama.addEventListener('input', (e) => {
         const namaDipilih = e.target.value;
-        // Cari apakah nama yang diketik ada di database pegawai
         const pegawaiDitemukan = daftarPegawai.find(p => p.nama === namaDipilih);
         
         if (pegawaiDitemukan) {
-            inputNik.value = pegawaiDitemukan.nik; // Isi NIK otomatis
-            inputNik.style.backgroundColor = '#e2e8f0'; // Visual cue bahwa ini read-only
+            inputNik.value = pegawaiDitemukan.nik;
+            inputNik.style.backgroundColor = '#e2e8f0';
         } else {
-            inputNik.value = ''; // Kosongkan jika nama tidak valid/tidak ditemukan
+            inputNik.value = ''; 
             inputNik.style.backgroundColor = '#f1f5f9';
         }
     });
@@ -263,7 +354,6 @@ function initLogikaSertifikat() {
             div.className = 'detail-item';
             let nilai = item[col.key] || "-";
             
-            // Format khusus jika link
             if(col.key === 'file_sertifikat' && item[col.key]) {
                 nilai = `<a href="${item[col.key]}" target="_blank" style="color:#0ea5e9; text-decoration:none;"><i class="fas fa-external-link-alt"></i> Klik untuk Buka Lampiran</a>`;
             }
@@ -306,7 +396,6 @@ function initLogikaSertifikat() {
             }
         });
 
-        // Penanganan khusus untuk edit file
         document.getElementById('form_old_file_sertifikat').value = item.file_sertifikat || '';
         const fileInfo = document.getElementById('file_lama_info');
         if (item.file_sertifikat) {
@@ -328,48 +417,40 @@ function initLogikaSertifikat() {
             btnSimpan.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Menyimpan Data & File...`;
             btnSimpan.disabled = true;
             
-            // 1. Persiapan Data Teks
             const formData = new FormData(form);
             const dataObj = Object.fromEntries(formData.entries());
             const idData = dataObj.id;
             delete dataObj.id;
 
-            // Bersihkan data teks kosong
             Object.keys(dataObj).forEach(key => { 
                 if (dataObj[key] === "") dataObj[key] = null; 
             });
 
-            // 2. Logika Upload File ke Supabase Storage ('lampiran')
             const fileInput = document.getElementById('form_file_sertifikat');
             const file = fileInput.files[0];
-            let finalFileUrl = document.getElementById('form_old_file_sertifikat').value; // Default pakai file lama
+            let finalFileUrl = document.getElementById('form_old_file_sertifikat').value; 
 
             if (file) {
-                // Buat nama file unik (Timestamp_NamaAsli) untuk menghindari file tertimpa
                 const fileExt = file.name.split('.').pop();
                 const uniqueFileName = `${Date.now()}_${Math.random().toString(36).substring(2,9)}.${fileExt}`;
                 
-                // Proses Upload
                 const { data: uploadData, error: uploadError } = await supabase.storage
                     .from('lampiran')
                     .upload(uniqueFileName, file, { cacheControl: '3600', upsert: false });
 
                 if (uploadError) {
-                    alert("Gagal mengupload file ke Storage Supabase!\nPastikan nama bucket adalah 'lampiran' dan RLS Policy Storage sudah dibuka.\n\nPesan: " + uploadError.message);
+                    alert("Gagal mengupload file!\nPastikan bucket 'lampiran' sudah dibuat dan public.\nPesan: " + uploadError.message);
                     btnSimpan.innerHTML = `<i class="fas fa-save"></i> Simpan Sertifikat`;
                     btnSimpan.disabled = false;
-                    return; // Hentikan proses simpan jika upload gagal
+                    return; 
                 }
 
-                // Ambil URL Publik hasil upload
                 const { data: publicUrlData } = supabase.storage.from('lampiran').getPublicUrl(uniqueFileName);
                 finalFileUrl = publicUrlData.publicUrl;
             }
 
-            // Gabungkan URL file ke dalam objek yang akan disimpan ke database
             dataObj.file_sertifikat = finalFileUrl === "" ? null : finalFileUrl;
 
-            // 3. Simpan ke Database
             if (idData) {
                 await supabase.from('sertifikat_pegawai').update(dataObj).eq('id', idData);
             } else {
@@ -379,7 +460,7 @@ function initLogikaSertifikat() {
             btnSimpan.innerHTML = `<i class="fas fa-save"></i> Simpan Data`;
             btnSimpan.disabled = false;
             modalForm.style.display = 'none';
-            loadData(); // Refresh tabel
+            loadData(); 
         });
     }
 
