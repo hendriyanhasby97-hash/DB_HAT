@@ -5,6 +5,9 @@ import { renderPegawaiMasuk } from './pegawai-masuk.js';
 import { renderPegawaiKeluar } from './pegawai-keluar.js';
 import { renderSIK } from './sik.js';
 import { renderSTR } from './str.js';
+// Nanti jika file-nya sudah dibuat, hilangkan tanda komentar di bawah ini:
+// import { renderSertifikat } from './sertifikat.js';
+// import { renderSKP } from './skp.js';
 
 window.loadPage = (page, element = null) => {
     const container = document.getElementById('app-content');
@@ -15,6 +18,7 @@ window.loadPage = (page, element = null) => {
     
     if (element) {
         document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.submenu-item').forEach(el => el.classList.remove('active'));
         element.classList.add('active');
     }
 
@@ -25,7 +29,6 @@ window.loadPage = (page, element = null) => {
             break;
         case 'pegawai': 
             pageTitle.innerText = "MASTER DATA PEGAWAI"; 
-            // PENTING: Kirim role user ke halaman pegawai agar tombol Excel/PDF bisa menyesuaikan
             renderPegawai(container, currentRole); 
             break;
         case 'pegawai-masuk': 
@@ -44,6 +47,24 @@ window.loadPage = (page, element = null) => {
             pageTitle.innerText = "SURAT TANDA REGISTRASI (STR)"; 
             renderSTR(container); 
             break;
+            
+        // --- ROUTE BARU ---
+        case 'sertifikat': 
+            pageTitle.innerText = "SERTIFIKAT PEGAWAI"; 
+            // Jika file sertifikat.js sudah ada, ganti baris bawah dengan: renderSertifikat(container);
+            container.innerHTML = `<div style="background:white; padding:30px; border-radius:8px; text-align:center;">
+                <i class="fas fa-tools" style="font-size:3rem; color:#cbd5e1; margin-bottom:15px;"></i>
+                <h3 style="color:#475569;">Modul Sertifikat Pegawai Sedang Dalam Pengembangan</h3>
+            </div>`;
+            break;
+        case 'skp': 
+            pageTitle.innerText = "SASARAN KINERJA PEGAWAI (SKP)"; 
+            // Jika file skp.js sudah ada, ganti baris bawah dengan: renderSKP(container);
+            container.innerHTML = `<div style="background:white; padding:30px; border-radius:8px; text-align:center;">
+                <i class="fas fa-tools" style="font-size:3rem; color:#cbd5e1; margin-bottom:15px;"></i>
+                <h3 style="color:#475569;">Modul Sasaran Kinerja Pegawai Sedang Dalam Pengembangan</h3>
+            </div>`;
+            break;
     }
 };
 
@@ -54,7 +75,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const loginError = document.getElementById('login_error');
     const roleBadge = document.getElementById('role-badge');
 
-    // KREDENSIAL AKUN
     const SUPERADMIN_USER = "superadmin";
     const SUPERADMIN_PASS = "superadmin123";
 
@@ -83,12 +103,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // 1. Cek Sesi Aktif
     if (sessionStorage.getItem('hris_role')) {
         setupLayoutAkses();
     }
 
-    // 2. Submit Login Terpadu
     formLoginUtama.addEventListener('submit', async (e) => {
         e.preventDefault();
         
@@ -99,17 +117,14 @@ document.addEventListener('DOMContentLoaded', () => {
         loginError.style.display = 'none';
         btnSubmit.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Memvalidasi...`;
 
-        // Skenario 1: Login Superadmin
         if (userInput === SUPERADMIN_USER && passInput === SUPERADMIN_PASS) {
             sessionStorage.setItem('hris_role', 'superadmin');
             setupLayoutAkses();
         } 
-        // Skenario 2: Login Admin View-Only
         else if (userInput === ADMIN_USER && passInput === ADMIN_PASS) {
             sessionStorage.setItem('hris_role', 'admin');
             setupLayoutAkses();
         } 
-        // Skenario 3: Login Pegawai (User)
         else {
             const { data, error } = await supabase
                 .from('pegawai')
@@ -129,7 +144,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // 3. Logout Superadmin / Admin
     document.getElementById('btnAdminLogout').addEventListener('click', () => {
         if (confirm("Keluar dari Dashboard HRIS?")) {
             sessionStorage.clear();
