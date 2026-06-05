@@ -5,8 +5,7 @@ import { renderPegawaiMasuk } from './pegawai-masuk.js';
 import { renderPegawaiKeluar } from './pegawai-keluar.js';
 import { renderSIK } from './sik.js';
 import { renderSTR } from './str.js';
-// Nanti jika file-nya sudah dibuat, hilangkan tanda komentar di bawah ini:
-// import { renderSertifikat } from './sertifikat.js';
+import { renderSertifikat } from './sertifikat.js';
 // import { renderSKP } from './skp.js';
 
 window.loadPage = (page, element = null) => {
@@ -47,16 +46,11 @@ window.loadPage = (page, element = null) => {
             pageTitle.innerText = "SURAT TANDA REGISTRASI (STR)"; 
             renderSTR(container); 
             break;
-            
-        // --- ROUTE BARU ---
         case 'sertifikat': 
-            pageTitle.innerText = "SERTIFIKAT PEGAWAI"; 
-            // Jika file sertifikat.js sudah ada, ganti baris bawah dengan: renderSertifikat(container);
-            container.innerHTML = `<div style="background:white; padding:30px; border-radius:8px; text-align:center;">
-                <i class="fas fa-tools" style="font-size:3rem; color:#cbd5e1; margin-bottom:15px;"></i>
-                <h3 style="color:#475569;">Modul Sertifikat Pegawai Sedang Dalam Pengembangan</h3>
-            </div>`;
-            break;
+         pageTitle.innerText = "SERTIFIKAT PEGAWAI"; 
+         renderSertifikat(container);
+         break;
+        
         case 'skp': 
             pageTitle.innerText = "SASARAN KINERJA PEGAWAI (SKP)"; 
             // Jika file skp.js sudah ada, ganti baris bawah dengan: renderSKP(container);
