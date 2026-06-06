@@ -791,39 +791,3 @@ function renderPerizinanUser(container, tableName, titleMenu, pegawai) {
         }
     };
 }
-
-            switch (page) {
-                case 'profil':
-                    pageTitle.innerText = "PROFIL SAYA";
-                    const { renderProfil } = await import('./profil.js');
-                    renderProfil(container, pegawai);
-                    break;
-                case 'sik':
-                    pageTitle.innerText = "DOKUMEN SIK / SIP";
-                    const { renderSIK } = await import('./sik.js');
-                    renderSIK(container, pegawai);
-                    break;
-                case 'str':
-                    pageTitle.innerText = "DOKUMEN STR";
-                    const { renderSTR } = await import('./str.js');
-                    renderSTR(container, pegawai);
-                    break;
-                case 'sertifikat':
-                    pageTitle.innerText = "SERTIFIKAT";
-                    const { renderSertifikat } = await import('./sertifikat.js');
-                    renderSertifikat(container, pegawai);
-                    break;
-                case 'skp':
-                    pageTitle.innerText = "SASARAN KINERJA (SKP)";
-                    const { renderSKP } = await import('./skp.js');
-                    renderSKP(container, pegawai);
-                    break;
-            }
-        } catch (err) {
-            console.error("Error loading module:", err);
-            container.innerHTML = `<p style="color:red;">Gagal memuat modul ${page}.js. Pastikan file tersebut tersedia.</p>`;
-        }
-    };
-
-    window.loadPage('profil');
-});
