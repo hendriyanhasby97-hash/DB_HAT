@@ -70,6 +70,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 pageTitle.innerText = "SASARAN KINERJA (SKP) SAYA"; 
                 renderSKPUser(container, pegawai);
                 break;
+            default:
+                renderProfilSaya(container, pegawai);
         }
     };
 
