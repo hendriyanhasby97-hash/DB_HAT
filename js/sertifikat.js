@@ -115,6 +115,7 @@ export function renderSertifikat(container, userRole = 'superadmin') {
                                     <option value="Pelatihan">Pelatihan</option>
                                     <option value="Seminar">Seminar</option>
                                     <option value="Workshop">Workshop</option>
+                                    <option value="Webinar">Webinar</option>
                                     <option value="Bimtek">Bimtek</option>
                                     <option value="Simposium">Simposium</option>
                                     <option value="Lainnya">Lainnya</option>
