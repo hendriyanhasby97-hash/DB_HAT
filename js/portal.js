@@ -16,7 +16,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     document.getElementById('badge-nama').innerHTML = `<i class="fas fa-user-check"></i> ${pegawai.nama}`;
 
-    // 3. ROUTING DINAMIS
+    // 3. ROUTING DINAMIS (Memanggil file modul terpisah)
     window.loadPage = async (page, element = null) => {
         const container = document.getElementById('app-content');
         const pageTitle = document.getElementById('page-title');
@@ -50,10 +50,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const { renderSertifikat } = await import('./sertifikat.js');
                     renderSertifikat(container, pegawai);
                     break;
+                case 'skp':
+                    pageTitle.innerText = "SASARAN KINERJA (SKP)";
+                    const { renderSKP } = await import('./skp.js');
+                    renderSKP(container, pegawai);
+                    break;
             }
         } catch (err) {
             console.error("Error loading module:", err);
-            container.innerHTML = `<p style="color:red;">Gagal memuat modul. Pastikan file ${page}.js tersedia.</p>`;
+            container.innerHTML = `<p style="color:red;">Gagal memuat modul ${page}.js. Pastikan file tersebut tersedia.</p>`;
         }
     };
 
