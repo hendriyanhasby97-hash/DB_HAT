@@ -18,7 +18,9 @@ export function renderSKP(container, userRole = 'superadmin') {
             
             .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
             .filter-group { display: flex; gap: 10px; flex: 1; }
-            .filter-group input { padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 4px; outline: none; width: 300px; }
+            .filter-group input, .filter-group select { padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 4px; outline: none; }
+            .filter-group input { width: 300px; }
+            .filter-group select { min-width: 150px; background: white; cursor: pointer; }
             
             .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); align-items: flex-start; justify-content: center; z-index: 9999; padding: 20px; }
             .modal-content { background: white; padding: 30px; border-radius: 8px; width: 800px; max-width: 100%; max-height: 90vh; overflow-y: auto; margin-top: 2vh; }
@@ -40,6 +42,9 @@ export function renderSKP(container, userRole = 'superadmin') {
         <div class="toolbar">
             <div class="filter-group">
                 <input type="text" id="inputCariSKP" placeholder="🔍 Cari NIK, Nama, atau Tahun SKP...">
+                <select id="filterTahunSKP">
+                    <option value="">Semua Tahun</option>
+                </select>
             </div>
             <div style="display: flex; gap: 10px;">
                 <button class="btn btn-excel" id="btnExportExcelSKP"><i class="fas fa-file-excel"></i> Excel</button>
@@ -159,7 +164,10 @@ function initLogikaSKP(userRole) {
     const form = document.getElementById('formSKP');
     const modalTitle = document.getElementById('modalTitleSKP');
     const kontenDetail = document.getElementById('kontenDetailSKP');
+    
+    // Elemen Filter
     const inputCari = document.getElementById('inputCariSKP');
+    const filterTahun = document.getElementById('filterTahunSKP');
     
     const btnExportExcel = document.getElementById('btnExportExcelSKP');
     const btnExportPDF = document.getElementById('btnExportPDFSKP');
@@ -222,6 +230,7 @@ function initLogikaSKP(userRole) {
             const { data, error } = await supabase.from('skp_pegawai').select('*').order('tahun_skp', { ascending: false });
             if (error) throw error;
             currentData = data || []; 
+            populateFilterTahun(currentData); // Isi opsi tahun
             renderTabel(currentData); 
         } catch (err) {
             tbody.innerHTML = `<tr><td colspan="5" style="color:red; text-align:center;"><b>Error:</b> ${err.message}</td></tr>`;
@@ -234,6 +243,13 @@ function initLogikaSKP(userRole) {
             daftarPegawai = data;
             document.getElementById('list_pegawai_skp').innerHTML = data.map(p => `<option value="${p.nama}">`).join('');
         }
+    }
+
+    // Fungsi untuk mengisi dropdown tahun secara dinamis
+    function populateFilterTahun(data) {
+        const uniqueYears = [...new Set(data.map(item => item.tahun_skp))].filter(Boolean).sort((a, b) => b - a);
+        filterTahun.innerHTML = '<option value="">Semua Tahun</option>' + 
+            uniqueYears.map(year => `<option value="${year}">${year}</option>`).join('');
     }
 
     loadData();
@@ -278,16 +294,27 @@ function initLogikaSKP(userRole) {
         `).join('');
     }
 
-    if(inputCari) {
-        inputCari.addEventListener('input', () => {
-            const keyword = inputCari.value.toLowerCase();
-            renderTabel(currentData.filter(item => 
-                (item.nama && item.nama.toLowerCase().includes(keyword)) || 
-                (item.nik && item.nik.toLowerCase().includes(keyword)) ||
-                (item.tahun_skp && item.tahun_skp.toString().includes(keyword))
-            ));
+    // Fungsi utama untuk memfilter data (Pencarian Text + Filter Tahun)
+    function applyFilters() {
+        const keyword = inputCari.value.toLowerCase();
+        const selectedYear = filterTahun.value;
+
+        const filteredData = currentData.filter(item => {
+            const matchKeyword = (item.nama && item.nama.toLowerCase().includes(keyword)) || 
+                                 (item.nik && item.nik.toLowerCase().includes(keyword)) ||
+                                 (item.tahun_skp && item.tahun_skp.toString().includes(keyword));
+            
+            const matchYear = selectedYear === "" || (item.tahun_skp && item.tahun_skp.toString() === selectedYear);
+
+            return matchKeyword && matchYear;
         });
+
+        renderTabel(filteredData);
     }
+
+    // Memicu filter saat mengetik pencarian atau mengubah tahun
+    if(inputCari) inputCari.addEventListener('input', applyFilters);
+    if(filterTahun) filterTahun.addEventListener('change', applyFilters);
 
     window.bukaDetailSKP = (id) => {
         const item = currentData.find(p => p.id === id);
