@@ -153,6 +153,11 @@ function renderProfilSaya(container, pegawai) {
             </div>
         </div>
 
+        <div style="background: white; border-radius: 12px; padding: 25px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+            <h4 style="margin-bottom: 15px; color: #0f172a;"><i class="fas fa-bullhorn"></i> Pengumuman Portal</h4>
+            <p style="color: #475569; font-size: 0.95rem; line-height: 1.6;">Selamat datang di Portal HRIS Mandiri. Silakan periksa kelengkapan data pribadi, berkas perizinan, dan sertifikat Anda melalui menu yang tersedia. Anda memiliki akses penuh untuk menambah dan memperbarui dokumen Anda secara mandiri.</p>
+        </div>
+
         <div class="modal" id="modalViewUser">
             <div class="modal-content">
                 <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid #e2e8f0; padding-bottom:15px; margin-bottom: 20px;">
@@ -257,6 +262,7 @@ function renderProfilSaya(container, pegawai) {
         </div>
     `;
 
+    // Ambil Data Master untuk Dropdown
     async function loadMasterDropdownsUser() {
         try {
             const [resGol, resJab, resRua] = await Promise.all([
@@ -271,6 +277,7 @@ function renderProfilSaya(container, pegawai) {
     }
     loadMasterDropdownsUser(); 
 
+    // Perhitungan Masa Kerja
     function hitungMasaKerja() {
         const inpMasuk = document.getElementById('form_masuk_rs');
         const inpMasa = document.getElementById('form_masa_kerja_rs');
@@ -296,6 +303,7 @@ function renderProfilSaya(container, pegawai) {
         document.getElementById('txt-masa-kerja').innerText = "-";
     }
 
+    // Modal Events
     document.getElementById('btnViewUser').onclick = () => {
         const kontenDetail = document.getElementById('kontenDetailUser');
         kontenDetail.innerHTML = '';
@@ -329,7 +337,7 @@ function renderProfilSaya(container, pegawai) {
         const formData = new FormData(e.target);
         const dataObj = Object.fromEntries(formData.entries());
         Object.keys(dataObj).forEach(key => { if (dataObj[key] === "") dataObj[key] = null; });
-        delete dataObj.nik; // Keamanan
+        delete dataObj.nik; // Kunci NIK agar tidak bisa dirubah
         
         const { error } = await supabase.from('pegawai').update(dataObj).eq('nik', pegawai.nik);
         if (error) { 
@@ -344,7 +352,7 @@ function renderProfilSaya(container, pegawai) {
 }
 
 // ==============================================================
-// MODUL 2: SERTIFIKAT (UI Sama Persis dengan Admin)
+// MODUL 2: SERTIFIKAT
 // ==============================================================
 function renderSertifikatUser(container, pegawai) {
     container.innerHTML = commonCSS + `
@@ -514,7 +522,7 @@ function renderSertifikatUser(container, pegawai) {
 }
 
 // ==============================================================
-// MODUL 3: SKP (UI Sama Persis dengan Admin + 3 Kolom Baru)
+// MODUL 3: SKP
 // ==============================================================
 function renderSKPUser(container, pegawai) {
     container.innerHTML = commonCSS + `
@@ -718,7 +726,7 @@ function renderSKPUser(container, pegawai) {
 }
 
 // ==============================================================
-// MODUL 4: PERIZINAN (SIK & STR - UI Sama Persis dengan Admin)
+// MODUL 4: PERIZINAN (SIK & STR) - VERSI ANTI-ERROR (TANPA ORDER)
 // ==============================================================
 function renderPerizinanUser(container, tableName, titleMenu, pegawai) {
     container.innerHTML = commonCSS + `
@@ -765,59 +773,40 @@ function renderPerizinanUser(container, tableName, titleMenu, pegawai) {
     `;
 
     let dataIzin = [];
+    
     const colFile = tableName === 'berkas_sik' ? 'file_sik' : (tableName === 'berkas_str' ? 'file_str' : 'lampiran');
     const colNomor = tableName === 'berkas_sik' ? 'no_surat' : 'nomor'; 
 
     async function loadIzin() {
-        const { data, error } = await supabase.from(tableName).select('*').eq('nik', pegawai.nik).order('tgl_terbit', { ascending: false });
-        if (error) return; 
-        dataIzin = data || [];
-        renderTabelIzin(dataIzin);
-    }
-
-    function renderTabelIzin(data) {
         const tbody = document.getElementById('tabelDataIzin');
-        if (data.length === 0) {
+        
+        // PENTING: Order by ditiadakan sementara untuk mendeteksi error pada tabel
+        const { data, error } = await supabase.from(tableName).select('*').eq('nik', pegawai.nik);
+        
+        // JIKA ERROR, TAMPILKAN LANGSUNG DI TABEL
+        if (error) { 
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#ef4444; padding:20px;"><b>Error Database:</b> ${error.message}<br><small>Cek: Apakah tabel ${tableName} sudah ada? Atau apakah RLS Supabase sudah di-Enable Read Access?</small></td></tr>`; 
+            return; 
+        }
+
+        dataIzin = data || [];
+
+        if (dataIzin.length === 0) {
             tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:20px;">Belum ada arsip ${titleMenu}.</td></tr>`;
-            return;
-        } 
-        tbody.innerHTML = data.map(item => `
-            <tr>
-                <td><span style="font-weight:bold;">${item[colNomor] || item.nomor || '-'}</span></td>
-                <td>${item.tgl_terbit || '-'}</td><td>${item.tgl_berlaku || '-'}</td>
-                <td>${item[colFile] || item.lampiran ? `<a href="${item[colFile] || item.lampiran}" target="_blank" class="btn btn-link"><i class="fas fa-file-download"></i> Buka File</a>` : 'Tidak ada'}</td>
-                <td>
-                    <button class="btn btn-edit" onclick="bukaFormIzinUser('${item.id}')"><i class="fas fa-edit"></i></button>
-                    <button class="btn btn-hapus" onclick="hapusIzinUser('${item.id}')"><i class="fas fa-trash"></i></button>
-                </td>
-            </tr>
-        `).join('');
+        } else {
+            tbody.innerHTML = dataIzin.map(item => `
+                <tr>
+                    <td><span style="font-weight:bold;">${item[colNomor] || item.nomor || '-'}</span></td>
+                    <td>${item.tgl_terbit || '-'}</td><td>${item.tgl_berlaku || '-'}</td>
+                    <td>${item[colFile] || item.lampiran ? `<a href="${item[colFile] || item.lampiran}" target="_blank" class="btn btn-link"><i class="fas fa-file-download"></i> Buka File</a>` : 'Tidak ada'}</td>
+                    <td>
+                        <button class="btn btn-edit" onclick="bukaFormIzinUser('${item.id}')"><i class="fas fa-edit"></i></button>
+                        <button class="btn btn-hapus" onclick="hapusIzinUser('${item.id}')"><i class="fas fa-trash"></i></button>
+                    </td>
+                </tr>
+            `).join('');
+        }
     }
-
-    document.getElementById('inputCariIzin').addEventListener('input', (e) => {
-        const kw = e.target.value.toLowerCase();
-        renderTabelIzin(dataIzin.filter(i => {
-            const num = i[colNomor] || i.nomor || "";
-            return num.toLowerCase().includes(kw);
-        }));
-    });
-
-    document.getElementById('btnExportExcelIzin').onclick = () => {
-        if (dataIzin.length === 0) return alert("Data kosong.");
-        const ws = XLSX.utils.json_to_sheet(dataIzin);
-        const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, titleMenu);
-        XLSX.writeFile(wb, `${titleMenu}_${pegawai.nama}.xlsx`);
-    };
-
-    document.getElementById('btnExportPDFIzin').onclick = () => {
-        if (dataIzin.length === 0) return alert("Data kosong.");
-        const { jsPDF } = window.jspdf; const doc = new jsPDF('landscape'); 
-        doc.text(`Laporan ${titleMenu}`, 14, 15);
-        const rows = dataIzin.map(i => [i[colNomor]||i.nomor||'-', i.tgl_terbit||'-', i.tgl_berlaku||'-']);
-        doc.autoTable({ head: [["Nomor", "Tanggal Terbit", "Tanggal Berlaku"]], body: rows, startY: 20 });
-        doc.save(`${titleMenu.replace(/\//g,'')}_${pegawai.nama}.pdf`);
-    };
-
     loadIzin();
 
     window.bukaFormIzinUser = (id = null) => {
@@ -864,7 +853,7 @@ function renderPerizinanUser(container, tableName, titleMenu, pegawai) {
         if (file) {
             const uniqueFileName = `${titleMenu.replace(/\//g,'')}_${Date.now()}_${Math.random().toString(36).substring(2,9)}.${file.name.split('.').pop()}`;
             const { error: uploadError } = await supabase.storage.from('lampiran').upload(uniqueFileName, file, { cacheControl: '3600', upsert: false });
-            if (uploadError) { alert("Upload Gagal"); btn.innerHTML = "Simpan Dokumen"; btn.disabled = false; return; }
+            if (uploadError) { alert("Upload Gagal: " + uploadError.message); btn.innerHTML = "Simpan Dokumen"; btn.disabled = false; return; }
             finalFileUrl = supabase.storage.from('lampiran').getPublicUrl(uniqueFileName).data.publicUrl;
         }
 
