@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
-    // 2. AMBIL DATA PEGAWAI DARI SUPABASE
+    // 2. AMBIL DATA PEGAWAI
     const { data: pegawai, error } = await supabase
         .from('pegawai')
         .select('*')
@@ -23,7 +23,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
-    // Tampilkan Nama di Topbar
     document.getElementById('badge-nama').innerHTML = `<i class="fas fa-user-check" style="color:#10b981;"></i> ${pegawai.nama}`;
 
     // 3. LOGIKA KONDISIONAL MENU 
@@ -38,7 +37,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if(menuSkp) menuSkp.style.display = 'none';
     }
 
-    // 4. SISTEM ROUTING HALAMAN PORTAL
+    // 4. ROUTING HALAMAN
     window.loadPage = (page, element = null) => {
         const container = document.getElementById('app-content');
         const pageTitle = document.getElementById('page-title');
@@ -87,7 +86,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 // ==============================================================
-// GAYA CSS BERSAMA (Digunakan untuk semua modul User)
+// GAYA CSS BERSAMA (GAYA SAAS ADMIN)
 // ==============================================================
 const commonCSS = `
     <style>
@@ -97,10 +96,17 @@ const commonCSS = `
         .btn-edit { background: #f59e0b; padding: 6px 12px;}
         .btn-hapus { background: #ef4444; padding: 6px 12px;}
         .btn-simpan, .btn-tambah { background: #10b981; }
+        .btn-excel { background: #16a34a; }
+        .btn-pdf { background: #dc2626; }
         .btn-link { background: #f1f5f9; color: #475569; padding: 6px 12px; border: 1px solid #cbd5e1; }
         .btn-link:hover { background: #e2e8f0; color: #0f172a; }
         
         .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; background: white; padding: 16px 20px; border-radius: 10px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05); }
+        .filter-group { display: flex; gap: 10px; flex: 1; }
+        .filter-group input, .filter-group select { padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; outline: none; background: #f8fafc; font-size: 0.875rem;}
+        .filter-group input:focus, .filter-group select:focus { border-color: #0ea5e9; background: white; box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1); }
+        .filter-group input { width: 250px; }
+        
         .table-container { background: white; border-radius: 10px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); overflow: hidden; margin-top: 15px;}
         table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
         th, td { padding: 14px 20px; text-align: left; }
@@ -145,11 +151,6 @@ function renderProfilSaya(container, pegawai) {
                 <button class="btn btn-view" id="btnViewUser"><i class="fas fa-eye"></i> View Detail Lengkap</button>
                 <button class="btn btn-edit" id="btnEditUser"><i class="fas fa-edit"></i> Lengkapi Profil</button>
             </div>
-        </div>
-
-        <div style="background: white; border-radius: 12px; padding: 25px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
-            <h4 style="margin-bottom: 15px; color: #0f172a;"><i class="fas fa-bullhorn"></i> Pengumuman Portal</h4>
-            <p style="color: #475569; font-size: 0.95rem; line-height: 1.6;">Selamat datang di Portal HRIS Mandiri. Silakan periksa kelengkapan data pribadi, berkas perizinan, dan sertifikat Anda melalui menu yang tersedia. Anda memiliki akses penuh untuk menambah dan memperbarui dokumen Anda secara mandiri.</p>
         </div>
 
         <div class="modal" id="modalViewUser">
@@ -256,7 +257,6 @@ function renderProfilSaya(container, pegawai) {
         </div>
     `;
 
-    // Ambil Data Master untuk Dropdown
     async function loadMasterDropdownsUser() {
         try {
             const [resGol, resJab, resRua] = await Promise.all([
@@ -271,7 +271,6 @@ function renderProfilSaya(container, pegawai) {
     }
     loadMasterDropdownsUser(); 
 
-    // Perhitungan Masa Kerja
     function hitungMasaKerja() {
         const inpMasuk = document.getElementById('form_masuk_rs');
         const inpMasa = document.getElementById('form_masa_kerja_rs');
@@ -297,7 +296,6 @@ function renderProfilSaya(container, pegawai) {
         document.getElementById('txt-masa-kerja').innerText = "-";
     }
 
-    // Modal Events
     document.getElementById('btnViewUser').onclick = () => {
         const kontenDetail = document.getElementById('kontenDetailUser');
         kontenDetail.innerHTML = '';
@@ -331,7 +329,7 @@ function renderProfilSaya(container, pegawai) {
         const formData = new FormData(e.target);
         const dataObj = Object.fromEntries(formData.entries());
         Object.keys(dataObj).forEach(key => { if (dataObj[key] === "") dataObj[key] = null; });
-        delete dataObj.nik; // Kunci NIK agar tidak bisa dirubah
+        delete dataObj.nik; // Keamanan
         
         const { error } = await supabase.from('pegawai').update(dataObj).eq('nik', pegawai.nik);
         if (error) { 
@@ -346,18 +344,24 @@ function renderProfilSaya(container, pegawai) {
 }
 
 // ==============================================================
-// MODUL 2: SERTIFIKAT (Tambah & Edit)
+// MODUL 2: SERTIFIKAT (UI Sama Persis dengan Admin)
 // ==============================================================
 function renderSertifikatUser(container, pegawai) {
     container.innerHTML = commonCSS + `
         <div class="toolbar">
-            <h3 style="color:#0f172a;"><i class="fas fa-certificate"></i> Daftar Sertifikat & Pelatihan Saya</h3>
-            <button class="btn btn-tambah" onclick="window.bukaFormSertifUser()"><i class="fas fa-plus"></i> Tambah Baru</button>
+            <div class="filter-group">
+                <input type="text" id="inputCariSertif" placeholder="🔍 Cari Judul Kegiatan...">
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn btn-excel" id="btnExportExcelSertif"><i class="fas fa-file-excel"></i> Excel</button>
+                <button class="btn btn-pdf" id="btnExportPDFSertif"><i class="fas fa-file-pdf"></i> PDF</button>
+                <button class="btn btn-tambah" onclick="window.bukaFormSertifUser()"><i class="fas fa-plus"></i> Tambah Sertifikat</button>
+            </div>
         </div>
         <div class="table-container">
             <table>
-                <thead><tr><th>No. Sertifikat</th><th>Judul Kegiatan</th><th>Jenis</th><th>JPL / SKP</th><th>Aksi</th></tr></thead>
-                <tbody id="tabelDataSertif"><tr><td colspan="5" style="text-align:center;">Memuat data...</td></tr></tbody>
+                <thead><tr><th>No. Sertifikat</th><th>Judul Kegiatan</th><th>Jenis</th><th>Tanggal</th><th>Lampiran</th><th>Aksi</th></tr></thead>
+                <tbody id="tabelDataSertif"><tr><td colspan="6" style="text-align:center;">Memuat data...</td></tr></tbody>
             </table>
         </div>
 
@@ -400,27 +404,52 @@ function renderSertifikatUser(container, pegawai) {
     let dataSertif = [];
 
     async function loadSertif() {
-        const tbody = document.getElementById('tabelDataSertif');
         const { data, error } = await supabase.from('sertifikat_pegawai').select('*').eq('nik', pegawai.nik).order('created_at', { ascending: false });
-        if (error) { tbody.innerHTML = `<tr><td colspan="5">Error: ${error.message}</td></tr>`; return; }
+        if (error) return; 
         dataSertif = data || [];
-
-        if (dataSertif.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:20px;">Belum ada arsip Sertifikat.</td></tr>`;
-        } else {
-            tbody.innerHTML = dataSertif.map(item => `
-                <tr>
-                    <td>${item.no_sertifikat || '-'}</td><td>${item.judul_kegiatan || '-'}</td><td>${item.jenis_sertifikat || '-'}</td>
-                    <td>JPL: ${item.jpl || '0'} | SKP: ${item.skp || '0'}</td>
-                    <td>
-                        ${item.file_sertifikat ? `<a href="${item.file_sertifikat}" target="_blank" class="btn btn-view" title="Buka File"><i class="fas fa-file-download"></i></a>` : ''}
-                        <button class="btn btn-edit" onclick="bukaFormSertifUser('${item.id}')"><i class="fas fa-edit"></i></button>
-                        <button class="btn btn-hapus" onclick="hapusSertifUser('${item.id}')"><i class="fas fa-trash"></i></button>
-                    </td>
-                </tr>
-            `).join('');
-        }
+        renderTabelSertif(dataSertif);
     }
+
+    function renderTabelSertif(data) {
+        const tbody = document.getElementById('tabelDataSertif');
+        if (data.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px;">Belum ada arsip Sertifikat.</td></tr>`;
+            return;
+        } 
+        tbody.innerHTML = data.map(item => `
+            <tr>
+                <td>${item.no_sertifikat || '-'}</td><td>${item.judul_kegiatan || '-'}</td><td>${item.jenis_sertifikat || '-'}</td>
+                <td>${item.tanggal_pelaksanaan || '-'}</td>
+                <td>${item.file_sertifikat ? `<a href="${item.file_sertifikat}" target="_blank" class="btn btn-link"><i class="fas fa-file-download"></i> Buka File</a>` : 'Tidak ada'}</td>
+                <td>
+                    <button class="btn btn-edit" onclick="bukaFormSertifUser('${item.id}')"><i class="fas fa-edit"></i></button>
+                    <button class="btn btn-hapus" onclick="hapusSertifUser('${item.id}')"><i class="fas fa-trash"></i></button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    document.getElementById('inputCariSertif').addEventListener('input', (e) => {
+        const kw = e.target.value.toLowerCase();
+        renderTabelSertif(dataSertif.filter(i => (i.judul_kegiatan && i.judul_kegiatan.toLowerCase().includes(kw))));
+    });
+
+    document.getElementById('btnExportExcelSertif').onclick = () => {
+        if (dataSertif.length === 0) return alert("Data kosong.");
+        const ws = XLSX.utils.json_to_sheet(dataSertif);
+        const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Sertifikat");
+        XLSX.writeFile(wb, `Sertifikat_${pegawai.nama}.xlsx`);
+    };
+
+    document.getElementById('btnExportPDFSertif').onclick = () => {
+        if (dataSertif.length === 0) return alert("Data kosong.");
+        const { jsPDF } = window.jspdf; const doc = new jsPDF('landscape'); 
+        doc.text("Laporan Sertifikat", 14, 15);
+        const rows = dataSertif.map(i => [i.no_sertifikat||'-', i.judul_kegiatan||'-', i.jenis_sertifikat||'-', i.tanggal_pelaksanaan||'-', i.jpl||'0', i.skp||'0']);
+        doc.autoTable({ head: [["No", "Judul", "Jenis", "Tanggal", "JPL", "SKP"]], body: rows, startY: 20 });
+        doc.save(`Sertifikat_${pegawai.nama}.pdf`);
+    };
+
     loadSertif();
 
     window.bukaFormSertifUser = (id = null) => {
@@ -452,9 +481,7 @@ function renderSertifikatUser(container, pegawai) {
         const dataObj = Object.fromEntries(new FormData(e.target).entries());
         const idData = dataObj.id; delete dataObj.id;
         
-        // HARCODED SECURITY
-        dataObj.nik = pegawai.nik;
-        dataObj.nama = pegawai.nama;
+        dataObj.nik = pegawai.nik; dataObj.nama = pegawai.nama;
         Object.keys(dataObj).forEach(key => { if (dataObj[key] === "") dataObj[key] = null; });
 
         const fileInput = document.getElementById('fs_file_sertifikat');
@@ -464,7 +491,7 @@ function renderSertifikatUser(container, pegawai) {
         if (file) {
             const uniqueFileName = `${Date.now()}_${Math.random().toString(36).substring(2,9)}.${file.name.split('.').pop()}`;
             const { error: uploadError } = await supabase.storage.from('lampiran').upload(uniqueFileName, file, { cacheControl: '3600', upsert: false });
-            if (uploadError) { alert("Upload Gagal: " + uploadError.message); btn.innerHTML = "Simpan"; btn.disabled = false; return; }
+            if (uploadError) { alert("Upload Gagal"); btn.innerHTML = "Simpan"; btn.disabled = false; return; }
             finalFileUrl = supabase.storage.from('lampiran').getPublicUrl(uniqueFileName).data.publicUrl;
         }
 
@@ -487,13 +514,20 @@ function renderSertifikatUser(container, pegawai) {
 }
 
 // ==============================================================
-// MODUL 3: SKP (Tambah & Edit)
+// MODUL 3: SKP (UI Sama Persis dengan Admin + 3 Kolom Baru)
 // ==============================================================
 function renderSKPUser(container, pegawai) {
     container.innerHTML = commonCSS + `
         <div class="toolbar">
-            <h3 style="color:#0f172a;"><i class="fas fa-file-signature"></i> Sasaran Kinerja Pegawai (SKP)</h3>
-            <button class="btn btn-tambah" onclick="window.bukaFormSKPUser()"><i class="fas fa-plus"></i> Tambah SKP Baru</button>
+            <div class="filter-group">
+                <input type="text" id="inputCariSKP" placeholder="🔍 Cari Jabatan...">
+                <select id="filterTahunSKP"><option value="">Semua Tahun</option></select>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn btn-excel" id="btnExportExcelSKP"><i class="fas fa-file-excel"></i> Excel</button>
+                <button class="btn btn-pdf" id="btnExportPDFSKP"><i class="fas fa-file-pdf"></i> PDF</button>
+                <button class="btn btn-tambah" onclick="window.bukaFormSKPUser()"><i class="fas fa-plus"></i> Tambah SKP</button>
+            </div>
         </div>
         <div class="table-container">
             <table>
@@ -503,14 +537,13 @@ function renderSKPUser(container, pegawai) {
         </div>
 
         <div class="modal" id="modalSKPUser">
-            <div class="modal-content" style="width: 700px;">
+            <div class="modal-content">
                 <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid #e2e8f0; padding-bottom:15px; margin-bottom: 20px;">
                     <h3 id="modalTitleSKP" style="margin:0; font-size: 1.25rem;"><i class="fas fa-edit" style="color:#f59e0b;"></i> Form SKP</h3>
                     <button class="btn btn-hapus" onclick="document.getElementById('modalSKPUser').style.display='none'"><i class="fas fa-times"></i></button>
                 </div>
                 <form id="formSKPUser">
                     <input type="hidden" name="id" id="fskp_id">
-                    
                     <fieldset><legend>Data Dasar SKP</legend>
                         <div class="grid-2">
                             <div class="form-group"><label>Tahun SKP</label><input type="number" name="tahun_skp" id="fskp_tahun_skp" required></div>
@@ -526,22 +559,14 @@ function renderSKPUser(container, pegawai) {
                                 <label>Capaian Kinerja Organisasi</label>
                                 <select name="capaian_kinerja_organisasi" id="fskp_capaian_kinerja_organisasi">
                                     <option value="" hidden>Pilih Capaian...</option>
-                                    <option value="Sangat Baik">Sangat Baik</option>
-                                    <option value="Baik">Baik</option>
-                                    <option value="Cukup">Cukup</option>
-                                    <option value="Kurang">Kurang</option>
-                                    <option value="Sangat Kurang">Sangat Kurang</option>
+                                    <option value="Sangat Baik">Sangat Baik</option><option value="Baik">Baik</option><option value="Cukup">Cukup</option><option value="Kurang">Kurang</option><option value="Sangat Kurang">Sangat Kurang</option>
                                 </select>
                             </div>
                             <div class="form-group">
                                 <label>Predikat Kinerja Pegawai</label>
                                 <select name="predikat_kinerja_pegawai" id="fskp_predikat_kinerja_pegawai">
                                     <option value="" hidden>Pilih Predikat...</option>
-                                    <option value="Sangat Baik">Sangat Baik</option>
-                                    <option value="Baik">Baik</option>
-                                    <option value="Butuh Perbaikan">Butuh Perbaikan</option>
-                                    <option value="Kurang">Kurang</option>
-                                    <option value="Sangat Kurang">Sangat Kurang</option>
+                                    <option value="Sangat Baik">Sangat Baik</option><option value="Baik">Baik</option><option value="Butuh Perbaikan">Butuh Perbaikan</option><option value="Kurang">Kurang</option><option value="Sangat Kurang">Sangat Kurang</option>
                                 </select>
                             </div>
                             <div class="form-group" style="grid-column: span 2;">
@@ -559,7 +584,6 @@ function renderSKPUser(container, pegawai) {
                             <div id="file_info_skp" style="font-size: 0.8rem; margin-top: 5px; color:#64748b;"></div>
                         </div>
                     </fieldset>
-
                     <div style="text-align: right; margin-top: 15px;"><button type="submit" class="btn btn-simpan" id="btnSimpanSKP">Simpan SKP</button></div>
                 </form>
             </div>
@@ -569,28 +593,65 @@ function renderSKPUser(container, pegawai) {
     let dataSKP = [];
 
     async function loadSKP() {
-        const tbody = document.getElementById('tabelDataSKP');
         const { data, error } = await supabase.from('skp_pegawai').select('*').eq('nik', pegawai.nik).order('tahun_skp', { ascending: false });
-        if (error) { tbody.innerHTML = `<tr><td colspan="5">Error: ${error.message}</td></tr>`; return; }
+        if (error) return; 
         dataSKP = data || [];
-
-        if (dataSKP.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:20px;">Belum ada arsip SKP.</td></tr>`;
-        } else {
-            tbody.innerHTML = dataSKP.map(item => `
-                <tr>
-                    <td><span style="font-weight:bold; color:#0369a1;">${item.tahun_skp || '-'}</span></td>
-                    <td>${item.jabatan || '-'}</td>
-                    <td>${item.predikat_kinerja_pegawai ? `<span style="background:#dcfce7; color:#059669; padding: 4px 10px; border-radius: 4px;">${item.predikat_kinerja_pegawai}</span>` : '-'}</td>
-                    <td>${item.lampiran_skp ? `<a href="${item.lampiran_skp}" target="_blank" class="btn btn-view"><i class="fas fa-file-download"></i></a>` : 'Tidak ada'}</td>
-                    <td>
-                        <button class="btn btn-edit" onclick="bukaFormSKPUser('${item.id}')"><i class="fas fa-edit"></i></button>
-                        <button class="btn btn-hapus" onclick="hapusSKPUser('${item.id}')"><i class="fas fa-trash"></i></button>
-                    </td>
-                </tr>
-            `).join('');
-        }
+        
+        const tahunList = [...new Set(dataSKP.map(item => item.tahun_skp).filter(Boolean))].sort((a,b) => b-a);
+        document.getElementById('filterTahunSKP').innerHTML = `<option value="">Semua Tahun</option>` + tahunList.map(t => `<option value="${t}">${t}</option>`).join('');
+        
+        renderTabelSKP(dataSKP);
     }
+
+    function renderTabelSKP(data) {
+        const tbody = document.getElementById('tabelDataSKP');
+        const keyword = document.getElementById('inputCariSKP').value.toLowerCase();
+        const tahun = document.getElementById('filterTahunSKP').value;
+        
+        const filtered = data.filter(item => {
+            const matchKeyword = (item.jabatan && item.jabatan.toLowerCase().includes(keyword));
+            const matchTahun = tahun === "" || item.tahun_skp == tahun;
+            return matchKeyword && matchTahun;
+        });
+
+        if (filtered.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:20px;">Belum ada arsip SKP.</td></tr>`;
+            return;
+        } 
+        
+        tbody.innerHTML = filtered.map(item => `
+            <tr>
+                <td><span style="font-weight:bold; color:#0369a1;">${item.tahun_skp || '-'}</span></td>
+                <td>${item.jabatan || '-'}</td>
+                <td>${item.predikat_kinerja_pegawai ? `<span style="background:#dcfce7; color:#059669; padding: 4px 10px; border-radius: 4px;">${item.predikat_kinerja_pegawai}</span>` : '-'}</td>
+                <td>${item.lampiran_skp ? `<a href="${item.lampiran_skp}" target="_blank" class="btn btn-link"><i class="fas fa-file-download"></i> Buka File</a>` : 'Tidak ada'}</td>
+                <td>
+                    <button class="btn btn-edit" onclick="bukaFormSKPUser('${item.id}')"><i class="fas fa-edit"></i></button>
+                    <button class="btn btn-hapus" onclick="hapusSKPUser('${item.id}')"><i class="fas fa-trash"></i></button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    document.getElementById('inputCariSKP').addEventListener('input', () => renderTabelSKP(dataSKP));
+    document.getElementById('filterTahunSKP').addEventListener('change', () => renderTabelSKP(dataSKP));
+
+    document.getElementById('btnExportExcelSKP').onclick = () => {
+        if (dataSKP.length === 0) return alert("Data kosong.");
+        const ws = XLSX.utils.json_to_sheet(dataSKP);
+        const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "SKP");
+        XLSX.writeFile(wb, `SKP_${pegawai.nama}.xlsx`);
+    };
+
+    document.getElementById('btnExportPDFSKP').onclick = () => {
+        if (dataSKP.length === 0) return alert("Data kosong.");
+        const { jsPDF } = window.jspdf; const doc = new jsPDF('landscape'); 
+        doc.text("Laporan SKP", 14, 15);
+        const rows = dataSKP.map(i => [i.tahun_skp||'-', i.jabatan||'-', i.pejabat_penilai||'-', i.capaian_kinerja_organisasi||'-', i.predikat_kinerja_pegawai||'-']);
+        doc.autoTable({ head: [["Tahun", "Jabatan", "Penilai", "Capaian Org.", "Predikat Pegawai"]], body: rows, startY: 20 });
+        doc.save(`SKP_${pegawai.nama}.pdf`);
+    };
+
     loadSKP();
 
     window.bukaFormSKPUser = (id = null) => {
@@ -634,7 +695,7 @@ function renderSKPUser(container, pegawai) {
         if (file) {
             const uniqueFileName = `SKP_${Date.now()}_${Math.random().toString(36).substring(2,9)}.${file.name.split('.').pop()}`;
             const { error: uploadError } = await supabase.storage.from('lampiran').upload(uniqueFileName, file, { cacheControl: '3600', upsert: false });
-            if (uploadError) { alert("Upload Gagal: " + uploadError.message); btn.innerHTML = "Simpan"; btn.disabled = false; return; }
+            if (uploadError) { alert("Upload Gagal"); btn.innerHTML = "Simpan"; btn.disabled = false; return; }
             finalFileUrl = supabase.storage.from('lampiran').getPublicUrl(uniqueFileName).data.publicUrl;
         }
 
@@ -657,13 +718,19 @@ function renderSKPUser(container, pegawai) {
 }
 
 // ==============================================================
-// MODUL 4: PERIZINAN (SIK & STR) - PERBAIKAN URUTAN (tgl_terbit)
+// MODUL 4: PERIZINAN (SIK & STR - UI Sama Persis dengan Admin)
 // ==============================================================
 function renderPerizinanUser(container, tableName, titleMenu, pegawai) {
     container.innerHTML = commonCSS + `
         <div class="toolbar">
-            <h3 style="color:#0f172a;"><i class="fas fa-folder-open"></i> Arsip Dokumen ${titleMenu}</h3>
-            <button class="btn btn-tambah" onclick="window.bukaFormIzinUser()"><i class="fas fa-plus"></i> Tambah Dokumen</button>
+            <div class="filter-group">
+                <input type="text" id="inputCariIzin" placeholder="🔍 Cari Nomor Dokumen...">
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn btn-excel" id="btnExportExcelIzin"><i class="fas fa-file-excel"></i> Excel</button>
+                <button class="btn btn-pdf" id="btnExportPDFIzin"><i class="fas fa-file-pdf"></i> PDF</button>
+                <button class="btn btn-tambah" onclick="window.bukaFormIzinUser()"><i class="fas fa-plus"></i> Tambah Dokumen</button>
+            </div>
         </div>
         <div class="table-container">
             <table>
@@ -673,7 +740,7 @@ function renderPerizinanUser(container, tableName, titleMenu, pegawai) {
         </div>
 
         <div class="modal" id="modalIzinUser">
-            <div class="modal-content" style="width: 700px;">
+            <div class="modal-content">
                 <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid #e2e8f0; padding-bottom:15px; margin-bottom: 20px;">
                     <h3 id="modalTitleIzin" style="margin:0; font-size: 1.25rem;"><i class="fas fa-edit" style="color:#f59e0b;"></i> Form ${titleMenu}</h3>
                     <button class="btn btn-hapus" onclick="document.getElementById('modalIzinUser').style.display='none'"><i class="fas fa-times"></i></button>
@@ -698,34 +765,59 @@ function renderPerizinanUser(container, tableName, titleMenu, pegawai) {
     `;
 
     let dataIzin = [];
-    
     const colFile = tableName === 'berkas_sik' ? 'file_sik' : (tableName === 'berkas_str' ? 'file_str' : 'lampiran');
     const colNomor = tableName === 'berkas_sik' ? 'no_surat' : 'nomor'; 
 
     async function loadIzin() {
-        const tbody = document.getElementById('tabelDataIzin');
-        
         const { data, error } = await supabase.from(tableName).select('*').eq('nik', pegawai.nik).order('tgl_terbit', { ascending: false });
-        
-        if (error) { tbody.innerHTML = `<tr><td colspan="5">Error: ${error.message}</td></tr>`; return; }
+        if (error) return; 
         dataIzin = data || [];
-
-        if (dataIzin.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:20px;">Belum ada arsip ${titleMenu}.</td></tr>`;
-        } else {
-            tbody.innerHTML = dataIzin.map(item => `
-                <tr>
-                    <td><span style="font-weight:bold;">${item[colNomor] || item.nomor || '-'}</span></td>
-                    <td>${item.tgl_terbit || '-'}</td><td>${item.tgl_berlaku || '-'}</td>
-                    <td>${item[colFile] || item.lampiran ? `<a href="${item[colFile] || item.lampiran}" target="_blank" class="btn btn-view"><i class="fas fa-file-download"></i></a>` : 'Tidak ada'}</td>
-                    <td>
-                        <button class="btn btn-edit" onclick="bukaFormIzinUser('${item.id}')"><i class="fas fa-edit"></i></button>
-                        <button class="btn btn-hapus" onclick="hapusIzinUser('${item.id}')"><i class="fas fa-trash"></i></button>
-                    </td>
-                </tr>
-            `).join('');
-        }
+        renderTabelIzin(dataIzin);
     }
+
+    function renderTabelIzin(data) {
+        const tbody = document.getElementById('tabelDataIzin');
+        if (data.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:20px;">Belum ada arsip ${titleMenu}.</td></tr>`;
+            return;
+        } 
+        tbody.innerHTML = data.map(item => `
+            <tr>
+                <td><span style="font-weight:bold;">${item[colNomor] || item.nomor || '-'}</span></td>
+                <td>${item.tgl_terbit || '-'}</td><td>${item.tgl_berlaku || '-'}</td>
+                <td>${item[colFile] || item.lampiran ? `<a href="${item[colFile] || item.lampiran}" target="_blank" class="btn btn-link"><i class="fas fa-file-download"></i> Buka File</a>` : 'Tidak ada'}</td>
+                <td>
+                    <button class="btn btn-edit" onclick="bukaFormIzinUser('${item.id}')"><i class="fas fa-edit"></i></button>
+                    <button class="btn btn-hapus" onclick="hapusIzinUser('${item.id}')"><i class="fas fa-trash"></i></button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    document.getElementById('inputCariIzin').addEventListener('input', (e) => {
+        const kw = e.target.value.toLowerCase();
+        renderTabelIzin(dataIzin.filter(i => {
+            const num = i[colNomor] || i.nomor || "";
+            return num.toLowerCase().includes(kw);
+        }));
+    });
+
+    document.getElementById('btnExportExcelIzin').onclick = () => {
+        if (dataIzin.length === 0) return alert("Data kosong.");
+        const ws = XLSX.utils.json_to_sheet(dataIzin);
+        const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, titleMenu);
+        XLSX.writeFile(wb, `${titleMenu}_${pegawai.nama}.xlsx`);
+    };
+
+    document.getElementById('btnExportPDFIzin').onclick = () => {
+        if (dataIzin.length === 0) return alert("Data kosong.");
+        const { jsPDF } = window.jspdf; const doc = new jsPDF('landscape'); 
+        doc.text(`Laporan ${titleMenu}`, 14, 15);
+        const rows = dataIzin.map(i => [i[colNomor]||i.nomor||'-', i.tgl_terbit||'-', i.tgl_berlaku||'-']);
+        doc.autoTable({ head: [["Nomor", "Tanggal Terbit", "Tanggal Berlaku"]], body: rows, startY: 20 });
+        doc.save(`${titleMenu.replace(/\//g,'')}_${pegawai.nama}.pdf`);
+    };
+
     loadIzin();
 
     window.bukaFormIzinUser = (id = null) => {
@@ -772,7 +864,7 @@ function renderPerizinanUser(container, tableName, titleMenu, pegawai) {
         if (file) {
             const uniqueFileName = `${titleMenu.replace(/\//g,'')}_${Date.now()}_${Math.random().toString(36).substring(2,9)}.${file.name.split('.').pop()}`;
             const { error: uploadError } = await supabase.storage.from('lampiran').upload(uniqueFileName, file, { cacheControl: '3600', upsert: false });
-            if (uploadError) { alert("Upload Gagal: " + uploadError.message); btn.innerHTML = "Simpan Dokumen"; btn.disabled = false; return; }
+            if (uploadError) { alert("Upload Gagal"); btn.innerHTML = "Simpan Dokumen"; btn.disabled = false; return; }
             finalFileUrl = supabase.storage.from('lampiran').getPublicUrl(uniqueFileName).data.publicUrl;
         }
 
