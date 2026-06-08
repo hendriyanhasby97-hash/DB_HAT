@@ -187,28 +187,48 @@ function initLogikaSertifikat(userRole, userNik) {
 
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const btn = document.getElementById('btnSimpanSertif'); btn.innerHTML = `Menyimpan...`; btn.disabled = true;
+        const btn = document.getElementById('btnSimpanSertif'); 
+        btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Menyimpan...`; 
+        btn.disabled = true;
         
-        const dataObj = Object.fromEntries(new FormData(form).entries());
-        const idData = dataObj.id; delete dataObj.id;
-        Object.keys(dataObj).forEach(key => { if (dataObj[key] === "") dataObj[key] = null; });
+        try {
+            const dataObj = Object.fromEntries(new FormData(form).entries());
+            const idData = dataObj.id; delete dataObj.id;
+            Object.keys(dataObj).forEach(key => { if (dataObj[key] === "") dataObj[key] = null; });
 
-        if (userRole === 'user' && currentUserData) { dataObj.nik = currentUserData.nik; dataObj.nama = currentUserData.nama; }
+            if (userRole === 'user' && currentUserData) { 
+                dataObj.nik = currentUserData.nik; 
+                dataObj.nama = currentUserData.nama; 
+            }
 
-        const fileInput = document.getElementById('fs_file_sertifikat');
-        let finalFileUrl = document.getElementById('fs_old_file_sertifikat').value; 
-        if (fileInput.files[0]) {
-            const file = fileInput.files[0];
-            const uniqueName = `Sertifikat_${Date.now()}_${Math.random().toString(36).substring(2,7)}.${file.name.split('.').pop()}`;
-            const { error: errUp } = await supabase.storage.from('lampiran').upload(uniqueName, file, { upsert: false });
-            if (!errUp) finalFileUrl = supabase.storage.from('lampiran').getPublicUrl(uniqueName).data.publicUrl;
+            const fileInput = document.getElementById('fs_file_sertifikat');
+            let finalFileUrl = document.getElementById('fs_old_file_sertifikat').value; 
+            if (fileInput.files[0]) {
+                const file = fileInput.files[0];
+                const uniqueName = `Sertifikat_${Date.now()}_${Math.random().toString(36).substring(2,7)}.${file.name.split('.').pop()}`;
+                const { error: errUp } = await supabase.storage.from('lampiran').upload(uniqueName, file, { upsert: false });
+                if (errUp) throw errUp;
+                finalFileUrl = supabase.storage.from('lampiran').getPublicUrl(uniqueName).data.publicUrl;
+            }
+
+            dataObj.file_sertifikat = finalFileUrl === "" ? null : finalFileUrl;
+            
+            let res;
+            if (idData) res = await supabase.from('sertifikat_pegawai').update(dataObj).eq('id', idData);
+            else res = await supabase.from('sertifikat_pegawai').insert([dataObj]);
+            
+            if (res.error) throw res.error; // Cegah keluar otomatis
+
+            alert("Data Sertifikat berhasil disimpan!");
+            modalForm.style.display = 'none'; // Sukses, baru tutup form
+            loadData(); 
+        } catch (err) {
+            console.error("Error Detail:", err);
+            alert("Gagal menyimpan Sertifikat: " + err.message); // Tampilkan alert
+        } finally {
+            btn.innerHTML = `Simpan Sertifikat`; 
+            btn.disabled = false; 
         }
-
-        dataObj.file_sertifikat = finalFileUrl === "" ? null : finalFileUrl;
-        if (idData) await supabase.from('sertifikat_pegawai').update(dataObj).eq('id', idData);
-        else await supabase.from('sertifikat_pegawai').insert([dataObj]);
-        
-        btn.innerHTML = `Simpan Sertifikat`; btn.disabled = false; modalForm.style.display = 'none'; loadData(); 
     });
 
     window.hapusSertif = async (id) => { if(confirm('Hapus dokumen ini?')) { await supabase.from('sertifikat_pegawai').delete().eq('id', id); loadData(); } };
