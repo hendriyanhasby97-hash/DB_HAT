@@ -81,7 +81,6 @@ function initLogikaSIK(userRole, userNik) {
     let daftarPegawai = [];
     let currentUserData = null;
 
-    // Persiapan Data untuk Role User
     async function initUserContext() {
         if (userRole === 'user' && userNik) {
             const { data } = await supabase.from('pegawai').select('nik, nama').eq('nik', userNik).single();
@@ -89,7 +88,6 @@ function initLogikaSIK(userRole, userNik) {
         }
     }
 
-    // Load Data Tabel
     async function loadData() {
         let query = supabase.from('berkas_sik').select('*').order('tgl_terbit', { ascending: false });
         if (userRole === 'user' && userNik) query = query.eq('nik', userNik);
@@ -100,9 +98,8 @@ function initLogikaSIK(userRole, userNik) {
         renderTabel(currentData);
     }
 
-    // Load Datalist untuk Admin
     async function loadDataPegawai() {
-        if (userRole === 'user') return; // User tidak perlu load nama orang lain
+        if (userRole === 'user') return; 
         const { data } = await supabase.from('pegawai').select('nik, nama');
         if (data) {
             daftarPegawai = data;
@@ -110,10 +107,8 @@ function initLogikaSIK(userRole, userNik) {
         }
     }
 
-    // Eksekusi Awal
     initUserContext().then(() => { loadData(); loadDataPegawai(); });
 
-    // Autofill Nama -> NIK (Khusus Admin)
     const inputNama = document.getElementById('f_nama_sik');
     const inputNik = document.getElementById('f_nik_sik');
     if (userRole !== 'user') {
@@ -149,7 +144,6 @@ function initLogikaSIK(userRole, userNik) {
         form.reset(); document.getElementById('f_id_sik').value = ''; document.getElementById('f_old_file_sik').value = ''; document.getElementById('file_info_sik').innerHTML = '';
         document.getElementById('modalTitleSIK').innerHTML = `<i class="fas fa-plus" style="color:#10b981;"></i> Tambah SIK / SIP`;
         
-        // Kunci nama dan NIK jika login sebagai user
         if (userRole === 'user' && currentUserData) {
             inputNama.value = currentUserData.nama; inputNama.readOnly = true;
             inputNik.value = currentUserData.nik;
@@ -178,29 +172,48 @@ function initLogikaSIK(userRole, userNik) {
 
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const btn = document.getElementById('btnSimpanSIK'); btn.innerHTML = `Menyimpan...`; btn.disabled = true;
+        const btn = document.getElementById('btnSimpanSIK'); 
+        btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Menyimpan...`; 
+        btn.disabled = true;
         
-        const dataObj = Object.fromEntries(new FormData(form).entries());
-        const idData = dataObj.id; delete dataObj.id;
-        Object.keys(dataObj).forEach(key => { if (dataObj[key] === "") dataObj[key] = null; });
+        try {
+            const dataObj = Object.fromEntries(new FormData(form).entries());
+            const idData = dataObj.id; delete dataObj.id;
+            Object.keys(dataObj).forEach(key => { if (dataObj[key] === "") dataObj[key] = null; });
 
-        // Keamanan ekstra untuk role user
-        if (userRole === 'user' && currentUserData) { dataObj.nik = currentUserData.nik; dataObj.nama = currentUserData.nama; }
+            if (userRole === 'user' && currentUserData) { 
+                dataObj.nik = currentUserData.nik; 
+                dataObj.nama = currentUserData.nama; 
+            }
 
-        const fileInput = document.getElementById('f_file_sik');
-        let finalFileUrl = document.getElementById('f_old_file_sik').value; 
-        if (fileInput.files[0]) {
-            const file = fileInput.files[0];
-            const uniqueName = `SIK_${Date.now()}_${Math.random().toString(36).substring(2,7)}.${file.name.split('.').pop()}`;
-            const { error: errUp } = await supabase.storage.from('lampiran').upload(uniqueName, file, { upsert: false });
-            if (!errUp) finalFileUrl = supabase.storage.from('lampiran').getPublicUrl(uniqueName).data.publicUrl;
+            const fileInput = document.getElementById('f_file_sik');
+            let finalFileUrl = document.getElementById('f_old_file_sik').value; 
+            if (fileInput.files[0]) {
+                const file = fileInput.files[0];
+                const uniqueName = `SIK_${Date.now()}_${Math.random().toString(36).substring(2,7)}.${file.name.split('.').pop()}`;
+                const { error: errUp } = await supabase.storage.from('lampiran').upload(uniqueName, file, { upsert: false });
+                if (errUp) throw errUp;
+                finalFileUrl = supabase.storage.from('lampiran').getPublicUrl(uniqueName).data.publicUrl;
+            }
+
+            dataObj.file_sik = finalFileUrl === "" ? null : finalFileUrl;
+            
+            let res;
+            if (idData) res = await supabase.from('berkas_sik').update(dataObj).eq('id', idData);
+            else res = await supabase.from('berkas_sik').insert([dataObj]);
+            
+            if (res.error) throw res.error; // Cegah keluar otomatis jika ada error
+
+            alert("Data SIK berhasil disimpan!");
+            modalForm.style.display = 'none'; // Sukses, baru tutup form
+            loadData(); 
+        } catch (err) {
+            console.error("Error Detail:", err);
+            alert("Gagal menyimpan SIK: " + err.message); // Tampilkan alert penyebab error
+        } finally {
+            btn.innerHTML = `Simpan Dokumen`; 
+            btn.disabled = false; 
         }
-
-        dataObj.file_sik = finalFileUrl === "" ? null : finalFileUrl;
-        if (idData) await supabase.from('berkas_sik').update(dataObj).eq('id', idData);
-        else await supabase.from('berkas_sik').insert([dataObj]);
-        
-        btn.innerHTML = `Simpan Dokumen`; btn.disabled = false; modalForm.style.display = 'none'; loadData(); 
     });
 
     window.hapusSIK = async (id) => { if(confirm('Hapus dokumen ini?')) { await supabase.from('berkas_sik').delete().eq('id', id); loadData(); } };
