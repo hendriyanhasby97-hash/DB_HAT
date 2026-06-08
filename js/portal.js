@@ -1,6 +1,6 @@
 import { supabase } from './koneksi.js';
 
-// 1. IMPORT MODUL DARI FILE EKSTERNAL (Sama seperti di app.js)
+// 1. IMPORT MODUL DARI FILE EKSTERNAL
 import { renderSIK } from './sik.js';
 import { renderSTR } from './str.js';
 import { renderSertifikat } from './sertifikat.js';
@@ -39,7 +39,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if(menuPerizinan) menuPerizinan.style.display = 'none';
     }
 
-    if (pegawai.kelompok_pegawai !== 'ASN') {
+    if (pegawai.kelompok_pegawai !== 'ASN' && pegawai.kelompok_pegawai !== 'PNS') {
         const menuSkp = document.getElementById('menu-skp');
         if(menuSkp) menuSkp.style.display = 'none';
     }
@@ -62,22 +62,18 @@ document.addEventListener('DOMContentLoaded', async () => {
                 break;
             case 'sik': 
                 pageTitle.innerText = "DOKUMEN SIK / SIP SAYA"; 
-                // Terhubung ke sik.js (Kirim container, role 'user', dan NIK)
                 renderSIK(container, userRole, userNik);
                 break;
             case 'str': 
                 pageTitle.innerText = "DOKUMEN STR SAYA"; 
-                // Terhubung ke str.js
                 renderSTR(container, userRole, userNik);
                 break;
             case 'sertifikat': 
                 pageTitle.innerText = "SERTIFIKAT SAYA"; 
-                // Terhubung ke sertifikat.js
                 renderSertifikat(container, userRole, userNik);
                 break;
             case 'skp': 
                 pageTitle.innerText = "SASARAN KINERJA (SKP) SAYA"; 
-                // Terhubung ke skp.js
                 renderSKP(container, userRole, userNik);
                 break;
             default:
@@ -129,7 +125,7 @@ const commonCSS = `
 `;
 
 // ==============================================================
-// MODUL PROFIL SAYA (Terpisah dari master file agar tidak merusak data admin)
+// MODUL PROFIL SAYA
 // ==============================================================
 function renderProfilSaya(container, pegawai) {
     container.innerHTML = commonCSS + `
@@ -207,7 +203,7 @@ function renderProfilSaya(container, pegawai) {
                             </div>
                             <div class="form-group"><label>Kelompok Pegawai</label>
                                 <select name="kelompok_pegawai" id="form_kelompok_pegawai">
-                                    <option value="" hidden>Pilih...</option><option value="ASN">ASN</option><option value="APBD">APBD</option><option value="BLUD">BLUD</option><option value="Konsultan">Konsultan</option><option value="Magang">Magang</option>
+                                    <option value="" hidden>Pilih...</option><option value="ASN">ASN</option><option value="PNS">PNS</option><option value="APBD">APBD</option><option value="BLUD">BLUD</option><option value="Konsultan">Konsultan</option><option value="Magang">Magang</option>
                                 </select>
                             </div>
                             <div class="form-group"><label>Kelompok Jabatan</label>
@@ -220,11 +216,11 @@ function renderProfilSaya(container, pegawai) {
                             <div class="form-group"><label>Ruangan</label><select name="ruangan" id="form_ruangan"><option value="" hidden>Pilih Ruangan...</option></select></div>
                             <div class="form-group"><label>TMT Pangkat</label><input type="date" name="tmt_pangkat" id="form_tmt_pangkat"></div>
                             <div class="form-group"><label>TMT Berikutnya</label><input type="date" name="tmt_berikutnya" id="form_tmt_berikutnya"></div>
-                            <div class="form-group"><label>TMT CPNS</label><input type="date" name="tmt_cpns" id="form_tmt_cpns"></div>
+                            <div class="form-group"><label>TMT CPNS (Otomatis dari NIP)</label><input type="date" name="tmt_cpns" id="form_tmt_cpns" readonly placeholder="Otomatis dihitung..."></div>
                             <div class="form-group"><label>Tanggal Masuk RS</label><input type="date" name="masuk_rs" id="form_masuk_rs"></div>
                             <div class="form-group"><label>Masa Kerja RS (Otomatis)</label><input type="text" name="masa_kerja_rs" id="form_masa_kerja_rs" readonly placeholder="Otomatis dihitung..."></div>
-                            <div class="form-group"><label>Rentang BUP</label><input type="text" name="rentang_bup" id="form_rentang_bup"></div>
-                            <div class="form-group"><label>TMT Pensiun</label><input type="date" name="tmt_pensiun" id="form_tmt_pensiun"></div>
+                            <div class="form-group"><label>Rentang BUP (Tahun)</label><input type="number" name="rentang_bup" id="form_rentang_bup" placeholder="Contoh: 58"></div>
+                            <div class="form-group"><label>TMT Pensiun (Otomatis)</label><input type="date" name="tmt_pensiun" id="form_tmt_pensiun" readonly></div>
                         </div>
                     </fieldset>
 
@@ -255,6 +251,7 @@ function renderProfilSaya(container, pegawai) {
         </div>
     `;
 
+    // 1. Ambil Data Master untuk Dropdown
     async function loadMasterDropdownsUser() {
         try {
             const [resGol, resJab, resRua] = await Promise.all([
@@ -269,6 +266,72 @@ function renderProfilSaya(container, pegawai) {
     }
     loadMasterDropdownsUser(); 
 
+    // Elemen Input untuk Hitung Otomatis
+    const inpKelPegawai = document.getElementById('form_kelompok_pegawai');
+    const inptmtPangkat = document.getElementById('form_tmt_pangkat');
+    const inptmtBerikutnya = document.getElementById('form_tmt_berikutnya');
+    const inpNip = document.getElementById('form_nip');
+    const inptmtCpns = document.getElementById('form_tmt_cpns');
+
+    const inpTglLahir = document.getElementById('form_tanggal_lahir');
+    const inpBUP = document.getElementById('form_rentang_bup');
+    const inpTmtPensiun = document.getElementById('form_tmt_pensiun');
+
+    // 2. Fungsi Lock Field jika bukan PNS/ASN
+    function cekStatusPegawai() {
+        if (!inpKelPegawai) return;
+        const isPNS = (inpKelPegawai.value === 'ASN' || inpKelPegawai.value === 'PNS');
+        
+        inptmtPangkat.readOnly = !isPNS;
+        inptmtBerikutnya.readOnly = !isPNS;
+        inpNip.readOnly = !isPNS;
+
+        // Ubah warna agar terlihat jelas ter-lock
+        inptmtPangkat.style.backgroundColor = !isPNS ? '#e2e8f0' : '';
+        inptmtBerikutnya.style.backgroundColor = !isPNS ? '#e2e8f0' : '';
+        inpNip.style.backgroundColor = !isPNS ? '#e2e8f0' : '';
+    }
+    if (inpKelPegawai) inpKelPegawai.addEventListener('change', cekStatusPegawai);
+
+    // 3. Fungsi TMT CPNS dari NIP
+    if (inpNip) {
+        inpNip.addEventListener('input', () => {
+            let nip = inpNip.value.replace(/[^0-9]/g, '');
+            if (nip.length >= 14) {
+                // Diambil dari NIP karakter ke-9 (index 8): 4 digit Tahun, 2 digit Bulan
+                const year = nip.substring(8, 12);
+                const month = nip.substring(12, 14);
+                if (year > 1900 && month >= 1 && month <= 12) {
+                    inptmtCpns.value = `${year}-${month}-01`;
+                }
+            }
+        });
+    }
+
+    // 4. Fungsi TMT Pensiun dari Tgl Lahir + BUP
+    function hitungTmtPensiun() {
+        if (!inpTglLahir || !inpBUP || !inpTmtPensiun) return;
+        const tglLahirVal = inpTglLahir.value;
+        const bupVal = parseInt(inpBUP.value);
+
+        if (tglLahirVal && !isNaN(bupVal)) {
+            let tgl = new Date(tglLahirVal);
+            tgl.setFullYear(tgl.getFullYear() + bupVal); // Tambah tahun BUP
+            tgl.setMonth(tgl.getMonth() + 1);            // Maju ke bulan berikutnya
+            tgl.setDate(1);                              // Set ke tanggal 1
+
+            let y = tgl.getFullYear();
+            let m = String(tgl.getMonth() + 1).padStart(2, '0');
+            let d = '01';
+            inpTmtPensiun.value = `${y}-${m}-${d}`;
+        } else {
+            inpTmtPensiun.value = '';
+        }
+    }
+    if (inpTglLahir) inpTglLahir.addEventListener('input', hitungTmtPensiun);
+    if (inpBUP) inpBUP.addEventListener('input', hitungTmtPensiun);
+
+    // 5. Perhitungan Masa Kerja RS
     function hitungMasaKerja() {
         const inpMasuk = document.getElementById('form_masuk_rs');
         const inpMasa = document.getElementById('form_masa_kerja_rs');
@@ -294,6 +357,7 @@ function renderProfilSaya(container, pegawai) {
         document.getElementById('txt-masa-kerja').innerText = "-";
     }
 
+    // Modal Events View
     document.getElementById('btnViewUser').onclick = () => {
         const kontenDetail = document.getElementById('kontenDetailUser');
         kontenDetail.innerHTML = '';
@@ -308,16 +372,23 @@ function renderProfilSaya(container, pegawai) {
         document.getElementById('modalViewUser').style.display = 'flex';
     };
 
+    // Modal Events Edit
     document.getElementById('btnEditUser').onclick = () => {
         Object.keys(pegawai).forEach(key => {
             const inputElement = document.getElementById(`form_${key}`);
             if(inputElement) inputElement.value = pegawai[key] || '';
         });
         document.getElementById('form_masuk_rs').addEventListener('input', hitungMasaKerja);
+        
+        // Panggil trigger kalkulasi saat pertama kali form terbuka
         hitungMasaKerja();
+        cekStatusPegawai();
+        hitungTmtPensiun();
+
         document.getElementById('modalEditUser').style.display = 'flex';
     };
 
+    // Submit Perubahan
     document.getElementById('formPegawaiUser').addEventListener('submit', async (e) => {
         e.preventDefault();
         const btn = document.getElementById('btnSimpanProfil');
@@ -327,7 +398,7 @@ function renderProfilSaya(container, pegawai) {
         const formData = new FormData(e.target);
         const dataObj = Object.fromEntries(formData.entries());
         Object.keys(dataObj).forEach(key => { if (dataObj[key] === "") dataObj[key] = null; });
-        delete dataObj.nik; // Kunci NIK agar tidak bisa dirubah
+        delete dataObj.nik; // Kunci NIK agar tidak bisa dirubah via payload
         
         const { error } = await supabase.from('pegawai').update(dataObj).eq('nik', pegawai.nik);
         if (error) { 
