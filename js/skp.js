@@ -4,7 +4,7 @@ export function renderSKP(container, userRole = 'superadmin', userNik = null) {
     container.innerHTML = `
         <style>
             .btn { padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; color: white; font-weight: 600; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 5px; }
-            .btn-edit { background: #f59e0b; } .btn-hapus { background: #ef4444; } .btn-detail { background: #0ea5e9; margin-right:5px;} .btn-tambah, .btn-simpan { background: #10b981; } .btn-excel { background: #16a34a; } .btn-pdf { background: #dc2626; } .btn-link { background: #64748b; }
+            .btn-edit { background: #f59e0b; } .btn-hapus { background: #ef4444; } .btn-tambah, .btn-simpan { background: #10b981; } .btn-excel { background: #16a34a; } .btn-pdf { background: #dc2626; } .btn-link { background: #64748b; }
             table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; font-size: 0.9rem;} th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e2e8f0; } th { background: #f8fafc; color: #475569;}
             .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
             .filter-group { display: flex; gap: 10px; flex: 1; } .filter-group input, .filter-group select { padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 4px; outline: none; } .filter-group input{width:250px;}
@@ -53,7 +53,6 @@ export function renderSKP(container, userRole = 'superadmin', userNik = null) {
                             <div class="form-group"><label>NIP</label><input type="text" name="nip" id="fskp_nip" readonly></div>
                         </div>
                     </fieldset>
-
                     <fieldset><legend>Detail Penilaian SKP</legend>
                         <div class="grid-2">
                             <div class="form-group"><label>Tahun SKP</label><input type="number" name="tahun_skp" id="fskp_tahun_skp" required></div>
@@ -62,7 +61,6 @@ export function renderSKP(container, userRole = 'superadmin', userNik = null) {
                             <div class="form-group"><label>Atasan Pejabat Penilai</label><input type="text" name="atasan_pejabat_penilai" id="fskp_atasan_pejabat_penilai" required></div>
                         </div>
                     </fieldset>
-
                     <fieldset><legend>Hasil Evaluasi Kinerja</legend>
                         <div class="grid-2">
                             <div class="form-group">
@@ -104,9 +102,7 @@ function initLogikaSKP(userRole, userNik) {
     const tbody = document.getElementById('tabelSKP');
     const modalForm = document.getElementById('modalFormSKP');
     const form = document.getElementById('formSKP');
-    let currentData = [];
-    let daftarPegawai = [];
-    let currentUserData = null;
+    let currentData = []; let daftarPegawai = []; let currentUserData = null;
 
     async function initUserContext() {
         if (userRole === 'user' && userNik) {
@@ -132,22 +128,16 @@ function initLogikaSKP(userRole, userNik) {
     async function loadDataPegawai() {
         if (userRole === 'user') return; 
         const { data } = await supabase.from('pegawai').select('nik, nama, nip');
-        if (data) {
-            daftarPegawai = data;
-            document.getElementById('list_pegawai_skp').innerHTML = data.map(p => `<option value="${p.nama}">`).join('');
-        }
+        if (data) { daftarPegawai = data; document.getElementById('list_pegawai_skp').innerHTML = data.map(p => `<option value="${p.nama}">`).join(''); }
     }
 
     initUserContext().then(() => { loadData(); loadDataPegawai(); });
 
-    const inputNama = document.getElementById('fskp_nama');
-    const inputNik = document.getElementById('fskp_nik');
-    const inputNip = document.getElementById('fskp_nip');
+    const inputNama = document.getElementById('fskp_nama'); const inputNik = document.getElementById('fskp_nik'); const inputNip = document.getElementById('fskp_nip');
     if (userRole !== 'user') {
         inputNama.addEventListener('input', (e) => {
             const p = daftarPegawai.find(x => x.nama === e.target.value);
-            if(p) { inputNik.value = p.nik; inputNip.value = p.nip || ''; } 
-            else { inputNik.value = ''; inputNip.value = ''; }
+            if(p) { inputNik.value = p.nik; inputNip.value = p.nip || ''; } else { inputNik.value = ''; inputNip.value = ''; }
         });
     }
 
@@ -158,8 +148,7 @@ function initLogikaSKP(userRole, userNik) {
         const tahun = document.getElementById('filterTahunSKP').value;
         const filtered = data.filter(i => {
             const matchKW = (i.nama && i.nama.toLowerCase().includes(keyword)) || (i.nik && i.nik.includes(keyword));
-            const matchTahun = tahun === "" || i.tahun_skp == tahun;
-            return matchKW && matchTahun;
+            const matchTahun = tahun === "" || i.tahun_skp == tahun; return matchKW && matchTahun;
         });
 
         tbody.innerHTML = filtered.map(row => `
@@ -184,7 +173,6 @@ function initLogikaSKP(userRole, userNik) {
     document.getElementById('btnTambahSKP').onclick = () => {
         form.reset(); document.getElementById('fskp_id').value = ''; document.getElementById('fskp_old_lampiran').value = ''; document.getElementById('file_info_skp').innerHTML = '';
         document.getElementById('modalTitleSKP').innerHTML = `<i class="fas fa-plus" style="color:#10b981;"></i> Tambah SKP`;
-        
         if (userRole === 'user' && currentUserData) {
             inputNama.value = currentUserData.nama; inputNama.readOnly = true;
             inputNik.value = currentUserData.nik; inputNip.value = currentUserData.nip || '';
@@ -198,11 +186,7 @@ function initLogikaSKP(userRole, userNik) {
         const item = currentData.find(p => p.id === id);
         if(!item) return;
 
-        Object.keys(item).forEach(key => {
-            const el = document.getElementById(`fskp_${key}`);
-            if(el && key !== 'lampiran_skp') el.value = item[key] || '';
-        });
-        
+        Object.keys(item).forEach(key => { const el = document.getElementById(`fskp_${key}`); if(el && key !== 'lampiran_skp') el.value = item[key] || ''; });
         if (userRole === 'user') inputNama.readOnly = true;
 
         document.getElementById('fskp_old_lampiran').value = item.lampiran_skp || '';
@@ -212,9 +196,7 @@ function initLogikaSKP(userRole, userNik) {
 
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const btn = document.getElementById('btnSimpanSKP'); 
-        btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Menyimpan...`; 
-        btn.disabled = true;
+        const btn = document.getElementById('btnSimpanSKP'); btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Menyimpan...`; btn.disabled = true;
         
         try {
             const dataObj = Object.fromEntries(new FormData(form).entries());
@@ -222,9 +204,7 @@ function initLogikaSKP(userRole, userNik) {
             Object.keys(dataObj).forEach(key => { if (dataObj[key] === "") dataObj[key] = null; });
 
             if (userRole === 'user' && currentUserData) { 
-                dataObj.nik = currentUserData.nik; 
-                dataObj.nama = currentUserData.nama; 
-                dataObj.nip = currentUserData.nip || null;
+                dataObj.nik = currentUserData.nik; dataObj.nama = currentUserData.nama; dataObj.nip = currentUserData.nip || null;
             }
 
             const fileInput = document.getElementById('fskp_lampiran_skp');
@@ -243,32 +223,16 @@ function initLogikaSKP(userRole, userNik) {
             if (idData) res = await supabase.from('skp_pegawai').update(dataObj).eq('id', idData);
             else res = await supabase.from('skp_pegawai').insert([dataObj]);
             
-            if (res.error) throw res.error; // Cegah form tertutup jika gagal
+            if (res.error) throw res.error; 
 
-            alert("Data SKP berhasil disimpan!");
-            modalForm.style.display = 'none'; // Sukses, baru tutup form
-            loadData(); 
+            alert("Data SKP berhasil disimpan!"); modalForm.style.display = 'none'; loadData(); 
         } catch (err) {
-            console.error("Error Detail:", err);
-            alert("Gagal menyimpan SKP: " + err.message); // Tampilkan popup error
+            console.error("Error Detail:", err); alert("Gagal menyimpan SKP: " + err.message); 
         } finally {
-            btn.innerHTML = `Simpan SKP`; 
-            btn.disabled = false; 
+            btn.innerHTML = `Simpan SKP`; btn.disabled = false; 
         }
     });
 
     window.hapusSKP = async (id) => { if(confirm('Hapus dokumen ini?')) { await supabase.from('skp_pegawai').delete().eq('id', id); loadData(); } };
     document.getElementById('btnTutupFormSKP').onclick = () => modalForm.style.display = 'none';
-    
-    // Fitur Download
-    document.getElementById('btnExportExcelSKP').onclick = () => {
-        if(currentData.length === 0) return;
-        const ws = XLSX.utils.json_to_sheet(currentData.map(i => ({"NIK": i.nik, "Nama": i.nama, "Tahun": i.tahun_skp, "Jabatan": i.jabatan, "Capaian": i.capaian_kinerja_organisasi, "Predikat": i.predikat_kinerja_pegawai})));
-        const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "SKP"); XLSX.writeFile(wb, `Data_SKP.xlsx`);
-    };
-    document.getElementById('btnExportPDFSKP').onclick = () => {
-        if(currentData.length === 0) return;
-        const { jsPDF } = window.jspdf; const doc = new jsPDF('landscape'); doc.text("Laporan SKP Pegawai", 14, 15);
-        doc.autoTable({ head: [["NIK", "Nama", "Tahun", "Jabatan", "Capaian Org.", "Predikat"]], body: currentData.map(i => [i.nik||'-', i.nama||'-', i.tahun_skp||'-', i.jabatan||'-', i.capaian_kinerja_organisasi||'-', i.predikat_kinerja_pegawai||'-']), startY: 20 }); doc.save(`Data_SKP.pdf`);
-    };
 }
