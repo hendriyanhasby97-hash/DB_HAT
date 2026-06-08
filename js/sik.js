@@ -1,365 +1,220 @@
 import { supabase } from './koneksi.js';
-import Papa from 'https://cdn.jsdelivr.net/npm/papaparse@5.4.1/+esm';
-import * as XLSX from 'https://cdn.sheetjs.com/xlsx-0.19.3/package/xlsx.mjs';
-import { jsPDF } from 'https://cdn.jsdelivr.net/npm/jspdf@2.5.1/+esm';
-import autoTable from 'https://cdn.jsdelivr.net/npm/jspdf-autotable@3.5.31/+esm';
 
-export function renderSIK(container) {
+export function renderSIK(container, userRole = 'superadmin', userNik = null) {
     container.innerHTML = `
         <style>
-            .btn { padding: 8px 12px; border: none; border-radius: 4px; cursor: pointer; color: white; font-weight: 600; display: inline-flex; align-items: center; gap: 5px; }
-            .btn-edit { background: #f59e0b; margin-right: 5px; font-size: 0.8rem; padding: 6px 10px;}
-            .btn-hapus { background: #ef4444; font-size: 0.8rem; padding: 6px 10px;}
-            .btn-submit { padding: 12px 20px; background: #3b82f6; color: white; border: none; border-radius: 4px; font-weight: 600; cursor: pointer; }
-            .btn-view { background: #0ea5e9; font-size: 0.8rem; padding: 6px 10px; }
-            
-            .btn-toggle { background: #64748b; font-size: 0.85rem; padding: 6px 12px; }
-            .btn-excel { background: #10b981; }
-            .btn-pdf { background: #ef4444; }
-            .btn-import { background: #0284c7; }
-
-            .form-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; }
-            .form-box { background: white; padding: 25px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 20px; }
-            .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
-            .form-group { margin-bottom: 15px; }
-            .form-group label { display: block; font-weight: 600; margin-bottom: 5px; font-size: 0.9rem; color: #475569; }
-            .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 4px; outline: none; }
-            .form-group input:focus, .form-group select:focus { border-color: #3b82f6; }
-            .form-group input:disabled { background: #f1f5f9; cursor: not-allowed; }
-            
-            .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-            .search-box { padding: 8px 15px; border: 1px solid #cbd5e1; border-radius: 4px; outline: none; width: 300px; }
-
-            .table-container { background: white; padding: 20px; border-radius: 8px; overflow-x: auto; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-            table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-            th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e2e8f0; }
-            th { background: #f8fafc; color: #475569; }
-            
-            .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); align-items: center; justify-content: center; z-index: 100; }
-            .modal-content { background: white; padding: 25px; border-radius: 8px; width: 600px; max-height: 90vh; overflow-y: auto; }
-            
-            .countdown-badge { padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 0.8rem; display: inline-block; }
+            .btn { padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; color: white; font-weight: 600; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 5px; }
+            .btn-edit { background: #f59e0b; } .btn-hapus { background: #ef4444; } .btn-detail { background: #0ea5e9; } .btn-tambah, .btn-simpan { background: #10b981; } .btn-excel { background: #16a34a; } .btn-pdf { background: #dc2626; } .btn-link { background: #64748b; }
+            table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; font-size: 0.9rem;} th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e2e8f0; } th { background: #f8fafc; color: #475569;}
+            .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+            .filter-group { display: flex; gap: 10px; flex: 1; } .filter-group input { padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 4px; outline: none; width:250px;}
+            .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); align-items: flex-start; justify-content: center; z-index: 9999; padding: 20px; }
+            .modal-content { background: white; padding: 30px; border-radius: 8px; width: 700px; max-width: 100%; max-height: 90vh; overflow-y: auto; margin-top: 2vh; }
+            .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;}
+            .form-group label { display: block; font-weight: 600; font-size: 0.85rem; color: #475569; margin-bottom: 4px;} .form-group input, .form-group select { width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; outline: none;} .form-group input[readonly] { background: #e2e8f0; cursor: not-allowed; font-weight:bold;}
+            fieldset { border: 1px solid #e2e8f0; padding: 15px; border-radius: 6px; margin-bottom: 15px; background: #fafafa;} legend { font-weight: bold; background: #3b82f6; color: white; padding: 4px 10px; border-radius: 4px; font-size: 0.9rem;}
         </style>
 
-        <div class="form-box" id="boxFormSIK">
-            <div class="form-header">
-                <h2 style="margin:0; color:#1e293b;"><i class="fas fa-file-medical"></i> Form Input SIK (Surat Izin Kerja)</h2>
-                <button class="btn btn-toggle" id="btnSembunyikanFormSIK"><i class="fas fa-eye-slash"></i> Sembunyikan Form</button>
-            </div>
-            
-            <form id="formSIK">
-                <div class="grid-2">
-                    <div class="form-group"><label>NIK</label><input type="text" name="nik" id="ins_nik_sik" required autocomplete="off" placeholder="Ketik NIK..."></div>
-                    <div class="form-group"><label>Nama Lengkap</label><input type="text" name="nama" id="ins_nama_sik" required autocomplete="off" placeholder="Otomatis dicari..."></div>
-                    <div class="form-group"><label>Bidang / Profesi</label><input type="text" name="bidang" required placeholder="Contoh: Perawat, Dokter" autocomplete="off"></div>
-                    <div class="form-group"><label>No. SIP / SIK</label><input type="text" name="no_sip" required autocomplete="off"></div>
-                    <div class="form-group"><label>Tanggal Terbit</label><input type="date" name="tgl_terbit" required></div>
-                    
-                    <div class="form-group">
-                        <label>Tanggal Berakhir</label>
-                        <input type="date" name="tgl_berakhir" id="ins_tgl_berakhir" required>
-                        <label style="display:inline-flex; align-items:center; gap:5px; margin-top:8px; font-weight:normal; font-size:0.85rem;">
-                            <input type="checkbox" id="chk_seumur_hidup"> Seumur Hidup
-                        </label>
-                    </div>
-                </div>
-                
-                <div class="form-group">
-                    <label>Lampiran Berkas (PDF)</label>
-                    <input type="file" id="form_file_sik" accept=".pdf">
-                </div>
-
-                <div style="display:flex; justify-content:flex-end;">
-                    <button type="submit" class="btn btn-submit" id="btnSimpanSIK"><i class="fas fa-save"></i> Simpan Data SIK</button>
-                </div>
-            </form>
-        </div>
-
-        <div id="boxShowFormSIK" style="display:none; margin-bottom: 20px;">
-            <button class="btn btn-toggle" style="background:#3b82f6;" id="btnTampilkanFormSIK"><i class="fas fa-eye"></i> Tampilkan Form Input SIK</button>
-        </div>
-
         <div class="toolbar">
-            <input type="text" id="inputCariSIK" class="search-box" placeholder="🔍 Cari berdasarkan NIK, Nama, No SIP...">
-            <div style="display:flex; gap:10px;">
-                <button class="btn btn-import" id="btnTriggerImportSIK"><i class="fas fa-file-import"></i> Import CSV</button>
-                <input type="file" id="inputCSVSIK" accept=".csv" style="display: none;">
+            <div class="filter-group">
+                <input type="text" id="inputCariSIK" placeholder="🔍 Cari Nomor SIK atau Nama...">
+            </div>
+            <div style="display: flex; gap: 10px;">
                 <button class="btn btn-excel" id="btnExportExcelSIK"><i class="fas fa-file-excel"></i> Excel</button>
                 <button class="btn btn-pdf" id="btnExportPDFSIK"><i class="fas fa-file-pdf"></i> PDF</button>
+                <button class="btn btn-tambah" id="btnTambahSIK"><i class="fas fa-plus"></i> Tambah SIK / SIP</button>
             </div>
         </div>
 
-        <div class="table-container">
-            <h3 style="margin-bottom: 15px; color: #1e293b;">Daftar Surat Izin Kerja (SIK)</h3>
+        <div style="background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
             <table>
-                <thead>
-                    <tr>
-                        <th>NIK</th>
-                        <th>Nama</th>
-                        <th>No. SIP</th>
-                        <th>Tanggal Berakhir</th>
-                        <th>Sisa Masa Berlaku</th>
-                        <th>Berkas</th>
-                        <th>Aksi</th>
-                    </tr>
-                </thead>
-                <tbody id="tabelSIK"><tr><td colspan="7" style="text-align:center;">Memuat data...</td></tr></tbody>
+                <thead><tr><th>Pegawai</th><th>No. SIK / SIP</th><th>Tanggal Terbit</th><th>Berlaku Sampai</th><th>Aksi</th></tr></thead>
+                <tbody id="tabelSIK"><tr><td colspan="5" style="text-align:center;">Memuat data...</td></tr></tbody>
             </table>
         </div>
 
-        <div class="modal" id="modalEditSIK">
+        <div class="modal" id="modalFormSIK">
             <div class="modal-content">
-                <h3 style="margin-bottom: 20px; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">Edit Data SIK</h3>
-                <form id="formEditSIK">
-                    <input type="hidden" name="id_sik" id="edit_id_sik">
-                    <div class="grid-2">
-                        <div class="form-group"><label>NIK</label><input type="text" name="nik" id="edit_nik_sik" required></div>
-                        <div class="form-group"><label>Nama Lengkap</label><input type="text" name="nama" id="edit_nama_sik" required></div>
-                        <div class="form-group"><label>Bidang</label><input type="text" name="bidang" id="edit_bidang" required></div>
-                        <div class="form-group"><label>No. SIP</label><input type="text" name="no_sip" id="edit_no_sip" required></div>
-                        <div class="form-group"><label>Tanggal Terbit</label><input type="date" name="tgl_terbit" id="edit_tgl_terbit" required></div>
-                        <div class="form-group">
-                            <label>Tanggal Berakhir</label>
-                            <input type="date" name="tgl_berakhir" id="edit_tgl_berakhir">
-                            <label style="display:inline-flex; align-items:center; gap:5px; margin-top:8px; font-weight:normal; font-size:0.85rem;">
-                                <input type="checkbox" id="edit_chk_seumur_hidup"> Seumur Hidup
-                            </label>
+                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid #ccc; padding-bottom:10px; margin-bottom: 20px;">
+                    <h3 id="modalTitleSIK" style="margin:0;"><i class="fas fa-edit" style="color:#0ea5e9;"></i> Form SIK / SIP</h3>
+                    <button class="btn btn-hapus" id="btnTutupFormSIK"><i class="fas fa-times"></i></button>
+                </div>
+                <form id="formSIK">
+                    <input type="hidden" name="id" id="f_id_sik">
+                    <fieldset><legend>Identitas Pegawai</legend>
+                        <div class="grid-2">
+                            <datalist id="list_pegawai_sik"></datalist>
+                            <div class="form-group" style="grid-column: span 2;">
+                                <label>Nama Lengkap</label>
+                                <input type="text" name="nama" id="f_nama_sik" list="list_pegawai_sik" placeholder="Ketik nama..." required autocomplete="off">
+                            </div>
+                            <div class="form-group" style="grid-column: span 2;"><label>NIK</label><input type="text" name="nik" id="f_nik_sik" readonly required></div>
                         </div>
-                    </div>
-                    <div class="form-group">
-                        <label>Ganti Lampiran Berkas Baru (PDF)</label>
-                        <input type="file" id="edit_file_sik" accept=".pdf">
-                    </div>
-                    <div style="text-align: right; margin-top: 15px;">
-                        <button type="button" class="btn" style="background:#94a3b8;" id="btnTutupEditSIK">Batal</button>
-                        <button type="submit" class="btn" style="background:#3b82f6;" id="btnUpdateSIK"><i class="fas fa-save"></i> Update</button>
-                    </div>
+                    </fieldset>
+                    <fieldset><legend>Data Dokumen</legend>
+                        <div class="grid-2">
+                            <div class="form-group" style="grid-column: span 2;"><label>Nomor SIK / SIP</label><input type="text" name="no_surat" id="f_no_surat_sik" required></div>
+                            <div class="form-group"><label>Tanggal Terbit</label><input type="date" name="tgl_terbit" id="f_tgl_terbit_sik" required></div>
+                            <div class="form-group"><label>Berlaku Sampai</label><input type="date" name="tgl_berlaku" id="f_tgl_berlaku_sik" required></div>
+                            <div class="form-group" style="grid-column: span 2;">
+                                <label>Upload Dokumen (PDF/JPG/PNG)</label>
+                                <input type="file" id="f_file_sik" accept=".pdf, .jpg, .jpeg, .png">
+                                <input type="hidden" id="f_old_file_sik">
+                                <div id="file_info_sik" style="font-size: 0.8rem; margin-top: 5px; color:#64748b;"></div>
+                            </div>
+                        </div>
+                    </fieldset>
+                    <div style="text-align: right; margin-top: 15px;"><button type="submit" class="btn btn-simpan" id="btnSimpanSIK">Simpan Dokumen</button></div>
                 </form>
             </div>
         </div>
     `;
 
-    initLogikaSIK();
+    initLogikaSIK(userRole, userNik);
 }
 
-function initLogikaSIK() {
-    const formInsert = document.getElementById('formSIK');
-    const formEdit = document.getElementById('formEditSIK');
+function initLogikaSIK(userRole, userNik) {
     const tbody = document.getElementById('tabelSIK');
-    const modal = document.getElementById('modalEditSIK');
-    
-    const chkIns = document.getElementById('chk_seumur_hidup');
-    const tglIns = document.getElementById('ins_tgl_berakhir');
-    const chkEdit = document.getElementById('edit_chk_seumur_hidup');
-    const tglEdit = document.getElementById('edit_tgl_berakhir');
+    const modalForm = document.getElementById('modalFormSIK');
+    const form = document.getElementById('formSIK');
+    let currentData = [];
+    let daftarPegawai = [];
+    let currentUserData = null;
 
-    let listData = [];
-    let filteredData = [];
+    // Persiapan Data untuk Role User
+    async function initUserContext() {
+        if (userRole === 'user' && userNik) {
+            const { data } = await supabase.from('pegawai').select('nik, nama').eq('nik', userNik).single();
+            currentUserData = data;
+        }
+    }
 
-    // FITUR AUTO-SEARCH NAMA BERDASARKAN NIK
-    function setupAutoSearchNIK(inputNikId, inputNamaId) {
-        const inputNik = document.getElementById(inputNikId);
-        const inputNama = document.getElementById(inputNamaId);
-        let timerId;
+    // Load Data Tabel
+    async function loadData() {
+        let query = supabase.from('berkas_sik').select('*').order('tgl_terbit', { ascending: false });
+        if (userRole === 'user' && userNik) query = query.eq('nik', userNik);
+        
+        const { data, error } = await query;
+        if (error) { tbody.innerHTML = `<tr><td colspan="5">Error: ${error.message}</td></tr>`; return; }
+        currentData = data || [];
+        renderTabel(currentData);
+    }
 
-        inputNik.addEventListener('input', (e) => {
-            clearTimeout(timerId);
-            const nikValue = e.target.value.trim();
+    // Load Datalist untuk Admin
+    async function loadDataPegawai() {
+        if (userRole === 'user') return; // User tidak perlu load nama orang lain
+        const { data } = await supabase.from('pegawai').select('nik, nama');
+        if (data) {
+            daftarPegawai = data;
+            document.getElementById('list_pegawai_sik').innerHTML = data.map(p => `<option value="${p.nama}">`).join('');
+        }
+    }
 
-            if (nikValue.length >= 6) { // Mulai mencari jika NIK >= 6 digit
-                inputNama.placeholder = "Mencari data pegawai...";
-                timerId = setTimeout(async () => {
-                    const { data, error } = await supabase
-                        .from('pegawai')
-                        .select('nama')
-                        .eq('nik', nikValue)
-                        .maybeSingle(); // maybeSingle mencegah error jika data tidak ditemukan
+    // Eksekusi Awal
+    initUserContext().then(() => { loadData(); loadDataPegawai(); });
 
-                    if (data && data.nama) {
-                        inputNama.value = data.nama;
-                    } else {
-                        inputNama.placeholder = "Data tidak ditemukan. Ketik manual...";
-                    }
-                }, 500); // Jeda 0.5 detik agar database tidak di-spam saat mengetik cepat
-            }
+    // Autofill Nama -> NIK (Khusus Admin)
+    const inputNama = document.getElementById('f_nama_sik');
+    const inputNik = document.getElementById('f_nik_sik');
+    if (userRole !== 'user') {
+        inputNama.addEventListener('input', (e) => {
+            const p = daftarPegawai.find(x => x.nama === e.target.value);
+            if(p) inputNik.value = p.nik; else inputNik.value = '';
         });
     }
 
-    // Pasang fitur Auto-Search ke Form Tambah dan Form Edit
-    setupAutoSearchNIK('ins_nik_sik', 'ins_nama_sik');
-    setupAutoSearchNIK('edit_nik_sik', 'edit_nama_sik');
-
-
-    // Logika Checkbox Seumur Hidup
-    chkIns.addEventListener('change', () => {
-        if(chkIns.checked) { tglIns.disabled = true; tglIns.value = ''; tglIns.required = false; }
-        else { tglIns.disabled = false; tglIns.required = true; }
-    });
-    chkEdit.addEventListener('change', () => {
-        if(chkEdit.checked) { tglEdit.disabled = true; tglEdit.value = ''; }
-        else { tglEdit.disabled = false; }
-    });
-
-    // Toggle Form
-    document.getElementById('btnSembunyikanFormSIK').onclick = () => { document.getElementById('boxFormSIK').style.display = 'none'; document.getElementById('boxShowFormSIK').style.display = 'block'; };
-    document.getElementById('btnTampilkanFormSIK').onclick = () => { document.getElementById('boxFormSIK').style.display = 'block'; document.getElementById('boxShowFormSIK').style.display = 'none'; };
-
-    // Fungsi Hitung Mundur Sisa Masa Berlaku
-    function hitungSisaMasaBerlaku(tglAkhirStr) {
-        if (!tglAkhirStr) return { teks: 'Seumur Hidup', bg: '#dcfce7', fg: '#10b981' };
-        
-        const hariIni = new Date();
-        const tglAkhir = new Date(tglAkhirStr);
-        hariIni.setHours(0,0,0,0); tglAkhir.setHours(0,0,0,0);
-
-        if (tglAkhir < hariIni) return { teks: 'Expired / Mati', bg: '#fee2e2', fg: '#ef4444' };
-
-        let thn = tglAkhir.getFullYear() - hariIni.getFullYear();
-        let bln = tglAkhir.getMonth() - hariIni.getMonth();
-        let hri = tglAkhir.getDate() - hariIni.getDate();
-
-        if (hri < 0) {
-            bln--;
-            const bulanLalu = new Date(tglAkhir.getFullYear(), tglAkhir.getMonth(), 0);
-            hri += bulanLalu.getDate();
-        }
-        if (bln < 0) { thn--; bln += 12; }
-
-        const totalSisaBulan = (thn * 12) + bln + (hri / 30);
-
-        let bg = '#dcfce7', fg = '#10b981'; 
-        if (totalSisaBulan <= 3) { bg = '#fee2e2'; fg = '#ef4444'; } 
-        else if (totalSisaBulan <= 6) { bg = '#fef9c3'; fg = '#d97706'; }
-
-        let teksStr = '';
-        if (thn > 0) teksStr += `${thn} Tahun `;
-        if (bln > 0) teksStr += `${bln} Bulan `;
-        teksStr += `${hri} Hari`;
-        if (teksStr === '') teksStr = '0 Hari';
-
-        return { teks: teksStr.trim(), bg: bg, fg: fg };
-    }
-
-    async function loadData() {
-        const { data, error } = await supabase.from('berkas_sik').select('*').order('tgl_terbit', { ascending: false });
-        if (!error) { listData = data; filteredData = data; renderTabel(filteredData); }
-    }
-
     function renderTabel(data) {
-        if(data.length === 0) { tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">Data kosong.</td></tr>`; return; }
-        
-        tbody.innerHTML = data.map(row => {
-            const hitung = hitungSisaMasaBerlaku(row.tgl_berakhir);
-            return `
-                <tr>
-                    <td>${row.nik || '-'}</td>
-                    <td><strong>${row.nama || '-'}</strong></td>
-                    <td>${row.no_sip || '-'}</td>
-                    <td>${row.tgl_berakhir || '-'}</td>
-                    <td><span class="countdown-badge" style="background:${hitung.bg}; color:${hitung.fg};">${hitung.teks}</span></td>
-                    <td>${row.lampiran_url ? `<a href="${row.lampiran_url}" target="_blank" class="btn btn-view"><i class="fas fa-file-pdf"></i> Lihat</a>` : '-'}</td>
-                    <td>
-                        <button class="btn btn-edit" onclick="bukaEditSIK('${row.id_sik}')"><i class="fas fa-edit"></i></button>
-                        <button class="btn btn-hapus" onclick="hapusSIK('${row.id_sik}')"><i class="fas fa-trash"></i></button>
-                    </td>
-                </tr>
-            `;
-        }).join('');
+        if (data.length === 0) { tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;">Belum ada data SIK / SIP.</td></tr>`; return; }
+        tbody.innerHTML = data.map(row => `
+            <tr>
+                <td><strong>${row.nama || '-'}</strong><br><small>${row.nik || '-'}</small></td>
+                <td><strong>${row.no_surat || '-'}</strong></td>
+                <td>${row.tgl_terbit || '-'}</td>
+                <td>${row.tgl_berlaku || '-'}</td>
+                <td>
+                    ${row.file_sik ? `<a href="${row.file_sik}" target="_blank" class="btn btn-link"><i class="fas fa-download"></i></a>` : ''}
+                    <button class="btn btn-edit" onclick="bukaFormSIK('${row.id}')"><i class="fas fa-edit"></i></button>
+                    <button class="btn btn-hapus" onclick="hapusSIK('${row.id}')"><i class="fas fa-trash"></i></button>
+                </td>
+            </tr>
+        `).join('');
     }
 
     document.getElementById('inputCariSIK').addEventListener('input', (e) => {
         const kw = e.target.value.toLowerCase();
-        filteredData = listData.filter(p => p.nama.toLowerCase().includes(kw) || p.nik.includes(kw) || p.no_sip.toLowerCase().includes(kw));
-        renderTabel(filteredData);
+        renderTabel(currentData.filter(i => (i.nama && i.nama.toLowerCase().includes(kw)) || (i.no_surat && i.no_surat.toLowerCase().includes(kw))));
     });
 
-    async function uploadFile(fileInput, bucketName) {
-        if (!fileInput || fileInput.files.length === 0) return null;
-        const file = fileInput.files[0];
-        const fileName = `${Date.now()}_${file.name.replace(/\s+/g, '_')}`;
-        const { data, error } = await supabase.storage.from(bucketName).upload(fileName, file);
-        if (error) { alert('Gagal upload berkas: ' + error.message); return null; }
-        return supabase.storage.from(bucketName).getPublicUrl(fileName).data.publicUrl;
-    }
-
-    formInsert.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const btn = document.getElementById('btnSimpanSIK');
-        btn.innerText = "Menyimpan..."; btn.disabled = true;
-
-        const url = await uploadFile(document.getElementById('form_file_sik'), 'lampiran_sik');
-        const dataObj = Object.fromEntries(new FormData(formInsert).entries());
+    document.getElementById('btnTambahSIK').onclick = () => {
+        form.reset(); document.getElementById('f_id_sik').value = ''; document.getElementById('f_old_file_sik').value = ''; document.getElementById('file_info_sik').innerHTML = '';
+        document.getElementById('modalTitleSIK').innerHTML = `<i class="fas fa-plus" style="color:#10b981;"></i> Tambah SIK / SIP`;
         
-        dataObj.tgl_berakhir = chkIns.checked ? null : dataObj.tgl_berakhir;
-        if(url) dataObj.lampiran_url = url;
+        // Kunci nama dan NIK jika login sebagai user
+        if (userRole === 'user' && currentUserData) {
+            inputNama.value = currentUserData.nama; inputNama.readOnly = true;
+            inputNik.value = currentUserData.nik;
+        }
+        modalForm.style.display = 'flex';
+    };
 
-        const { error } = await supabase.from('berkas_sik').insert([dataObj]);
-        if(!error) { formInsert.reset(); chkIns.checked = false; tglIns.disabled = false; loadData(); }
-        btn.innerHTML = `<i class="fas fa-save"></i> Simpan Data SIK`; btn.disabled = false;
-    });
-
-    window.bukaEditSIK = (id) => {
-        const item = listData.find(p => p.id_sik == id);
+    window.bukaFormSIK = (id) => {
+        form.reset(); document.getElementById('modalTitleSIK').innerHTML = `<i class="fas fa-edit" style="color:#f59e0b;"></i> Edit SIK / SIP`;
+        const item = currentData.find(p => p.id === id);
         if(!item) return;
-        Object.keys(item).forEach(key => {
-            // Karena ID input nama & nik di edit form berubah, kita tangani khusus
-            if (key === 'nik') document.getElementById('edit_nik_sik').value = item[key] || '';
-            else if (key === 'nama') document.getElementById('edit_nama_sik').value = item[key] || '';
-            else {
-                const el = document.getElementById(`edit_${key}`);
-                if(el) el.value = item[key] || '';
-            }
-        });
-        if(!item.tgl_berakhir) { chkEdit.checked = true; tglEdit.disabled = true; tglEdit.value = ''; }
-        else { chkEdit.checked = false; tglEdit.disabled = false; }
-        modal.style.display = 'flex';
+
+        document.getElementById('f_id_sik').value = item.id;
+        document.getElementById('f_nama_sik').value = item.nama || '';
+        document.getElementById('f_nik_sik').value = item.nik || '';
+        document.getElementById('f_no_surat_sik').value = item.no_surat || '';
+        document.getElementById('f_tgl_terbit_sik').value = item.tgl_terbit || '';
+        document.getElementById('f_tgl_berlaku_sik').value = item.tgl_berlaku || '';
+        
+        if (userRole === 'user') inputNama.readOnly = true;
+
+        document.getElementById('f_old_file_sik').value = item.file_sik || '';
+        document.getElementById('file_info_sik').innerHTML = item.file_sik ? `File saat ini: <a href="${item.file_sik}" target="_blank">Lihat</a>` : '';
+        modalForm.style.display = 'flex';
     };
 
-    document.getElementById('btnTutupEditSIK').onclick = () => modal.style.display = 'none';
-
-    formEdit.addEventListener('submit', async (e) => {
+    form.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const dataObj = Object.fromEntries(new FormData(formEdit).entries());
-        const id = dataObj.id_sik; delete dataObj.id_sik;
+        const btn = document.getElementById('btnSimpanSIK'); btn.innerHTML = `Menyimpan...`; btn.disabled = true;
+        
+        const dataObj = Object.fromEntries(new FormData(form).entries());
+        const idData = dataObj.id; delete dataObj.id;
+        Object.keys(dataObj).forEach(key => { if (dataObj[key] === "") dataObj[key] = null; });
 
-        const url = await uploadFile(document.getElementById('edit_file_sik'), 'lampiran_sik');
-        dataObj.tgl_berakhir = chkEdit.checked ? null : dataObj.tgl_berakhir;
-        if(url) dataObj.lampiran_url = url;
+        // Keamanan ekstra untuk role user
+        if (userRole === 'user' && currentUserData) { dataObj.nik = currentUserData.nik; dataObj.nama = currentUserData.nama; }
 
-        const { error } = await supabase.from('berkas_sik').update(dataObj).eq('id_sik', id);
-        if(!error) { modal.style.display = 'none'; loadData(); }
+        const fileInput = document.getElementById('f_file_sik');
+        let finalFileUrl = document.getElementById('f_old_file_sik').value; 
+        if (fileInput.files[0]) {
+            const file = fileInput.files[0];
+            const uniqueName = `SIK_${Date.now()}_${Math.random().toString(36).substring(2,7)}.${file.name.split('.').pop()}`;
+            const { error: errUp } = await supabase.storage.from('lampiran').upload(uniqueName, file, { upsert: false });
+            if (!errUp) finalFileUrl = supabase.storage.from('lampiran').getPublicUrl(uniqueName).data.publicUrl;
+        }
+
+        dataObj.file_sik = finalFileUrl === "" ? null : finalFileUrl;
+        if (idData) await supabase.from('berkas_sik').update(dataObj).eq('id', idData);
+        else await supabase.from('berkas_sik').insert([dataObj]);
+        
+        btn.innerHTML = `Simpan Dokumen`; btn.disabled = false; modalForm.style.display = 'none'; loadData(); 
     });
 
-    window.hapusSIK = async (id) => {
-        if(confirm('Hapus data SIK ini?')) { await supabase.from('berkas_sik').delete().eq('id_sik', id); loadData(); }
-    };
-
+    window.hapusSIK = async (id) => { if(confirm('Hapus dokumen ini?')) { await supabase.from('berkas_sik').delete().eq('id', id); loadData(); } };
+    document.getElementById('btnTutupFormSIK').onclick = () => modalForm.style.display = 'none';
+    
+    // Fitur Download
     document.getElementById('btnExportExcelSIK').onclick = () => {
-        const wb = XLSX.utils.book_new();
-        const ws = XLSX.utils.json_to_sheet(filteredData.map(r => ({ NIK: r.nik, Nama: r.nama, Bidang: r.bidang, "No SIP": r.no_sip, "Tgl Terbit": r.tgl_terbit, "Tgl Berakhir": r.tgl_berakhir || 'Seumur Hidup' })));
-        XLSX.utils.book_append_sheet(wb, ws, "SIK");
-        XLSX.writeFile(wb, "Laporan_SIK.xlsx");
+        if(currentData.length === 0) return;
+        const ws = XLSX.utils.json_to_sheet(currentData.map(i => ({"NIK": i.nik, "Nama": i.nama, "No SIK": i.no_surat, "Terbit": i.tgl_terbit, "Berlaku": i.tgl_berlaku, "File": i.file_sik})));
+        const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "SIK"); XLSX.writeFile(wb, `Data_SIK.xlsx`);
     };
-
     document.getElementById('btnExportPDFSIK').onclick = () => {
-        const doc = new jsPDF();
-        doc.text("Laporan Surat Izin Kerja (SIK) Pegawai", 14, 15);
-        autoTable(doc, { head: [['NIK', 'Nama', 'Bidang', 'No SIP', 'Tgl Berakhir']], body: filteredData.map(r => [r.nik, r.nama, r.bidang, r.no_sip, r.tgl_berakhir || 'Seumur Hidup']), startY: 22 });
-        doc.save("Laporan_SIK.pdf");
+        if(currentData.length === 0) return;
+        const { jsPDF } = window.jspdf; const doc = new jsPDF('landscape'); doc.text("Laporan SIK/SIP Pegawai", 14, 15);
+        doc.autoTable({ head: [["NIK", "Nama", "No SIK", "Tgl Terbit", "Berlaku"]], body: currentData.map(i => [i.nik||'-', i.nama||'-', i.no_surat||'-', i.tgl_terbit||'-', i.tgl_berlaku||'-']), startY: 20 }); doc.save(`Data_SIK.pdf`);
     };
-
-    document.getElementById('btnTriggerImportSIK').onclick = () => document.getElementById('inputCSVSIK').click();
-    document.getElementById('inputCSVSIK').onchange = (e) => {
-        Papa.parse(e.target.files[0], { header: true, skipEmptyLines: true, complete: async (res) => {
-            const clean = res.data.map(r => {
-                let obj = {};
-                Object.keys(r).forEach(k => obj[k.trim().toLowerCase().replace(/\s+/g, '_')] = r[k] || null);
-                return obj;
-            });
-            const { error } = await supabase.from('berkas_sik').insert(clean);
-            if(!error) loadData(); else alert(error.message);
-        }});
-    };
-
-    loadData();
 }
