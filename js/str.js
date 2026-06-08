@@ -4,7 +4,7 @@ export function renderSTR(container, userRole = 'superadmin', userNik = null) {
     container.innerHTML = `
         <style>
             .btn { padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; color: white; font-weight: 600; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 5px; }
-            .btn-edit { background: #f59e0b; } .btn-hapus { background: #ef4444; } .btn-detail { background: #0ea5e9; } .btn-tambah, .btn-simpan { background: #10b981; } .btn-excel { background: #16a34a; } .btn-pdf { background: #dc2626; } .btn-link { background: #64748b; }
+            .btn-edit { background: #f59e0b; } .btn-hapus { background: #ef4444; } .btn-tambah, .btn-simpan { background: #10b981; } .btn-excel { background: #16a34a; } .btn-pdf { background: #dc2626; } .btn-link { background: #64748b; }
             table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; font-size: 0.9rem;} th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e2e8f0; } th { background: #f8fafc; color: #475569;}
             .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
             .filter-group { display: flex; gap: 10px; flex: 1; } .filter-group input { padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 4px; outline: none; width:250px;}
@@ -16,9 +16,7 @@ export function renderSTR(container, userRole = 'superadmin', userNik = null) {
         </style>
 
         <div class="toolbar">
-            <div class="filter-group">
-                <input type="text" id="inputCariSTR" placeholder="🔍 Cari Nomor STR atau Nama...">
-            </div>
+            <div class="filter-group"><input type="text" id="inputCariSTR" placeholder="🔍 Cari Nomor STR atau Nama..."></div>
             <div style="display: flex; gap: 10px;">
                 <button class="btn btn-excel" id="btnExportExcelSTR"><i class="fas fa-file-excel"></i> Excel</button>
                 <button class="btn btn-pdf" id="btnExportPDFSTR"><i class="fas fa-file-pdf"></i> PDF</button>
@@ -28,8 +26,8 @@ export function renderSTR(container, userRole = 'superadmin', userNik = null) {
 
         <div style="background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
             <table>
-                <thead><tr><th>Pegawai</th><th>No. STR</th><th>Tanggal Terbit</th><th>Berlaku Sampai</th><th>Aksi</th></tr></thead>
-                <tbody id="tabelSTR"><tr><td colspan="5" style="text-align:center;">Memuat data...</td></tr></tbody>
+                <thead><tr><th>Pegawai</th><th>No. STR</th><th>Bidang</th><th>Tanggal Terbit</th><th>Berlaku Sampai</th><th>Aksi</th></tr></thead>
+                <tbody id="tabelSTR"><tr><td colspan="6" style="text-align:center;">Memuat data...</td></tr></tbody>
             </table>
         </div>
 
@@ -40,7 +38,7 @@ export function renderSTR(container, userRole = 'superadmin', userNik = null) {
                     <button class="btn btn-hapus" id="btnTutupFormSTR"><i class="fas fa-times"></i></button>
                 </div>
                 <form id="formSTR">
-                    <input type="hidden" name="id" id="f_id_str">
+                    <input type="hidden" name="id_str" id="f_id_str">
                     <fieldset><legend>Identitas Pegawai</legend>
                         <div class="grid-2">
                             <datalist id="list_pegawai_str"></datalist>
@@ -48,24 +46,22 @@ export function renderSTR(container, userRole = 'superadmin', userNik = null) {
                                 <label>Nama Lengkap</label>
                                 <input type="text" name="nama" id="f_nama_str" list="list_pegawai_str" placeholder="Ketik nama..." required autocomplete="off">
                             </div>
-                            <div class="form-group" style="grid-column: span 2;"><label>NIK</label><input type="text" name="nik" id="f_nik_str" readonly required></div>
+                            <div class="form-group"><label>NIK</label><input type="text" name="nik" id="f_nik_str" readonly required></div>
+                            <div class="form-group"><label>Bidang / Profesi</label><input type="text" name="bidang" id="f_bidang_str" placeholder="Contoh: Perawat, Bidan..."></div>
                         </div>
                     </fieldset>
                     <fieldset><legend>Data Dokumen</legend>
                         <div class="grid-2">
-                            <div class="form-group" style="grid-column: span 2;"><label>Nomor STR</label><input type="text" name="nomor" id="f_no_surat_str" required></div>
+                            <div class="form-group" style="grid-column: span 2;"><label>Nomor STR</label><input type="text" name="no_str" id="f_no_str_str" required></div>
                             <div class="form-group"><label>Tanggal Terbit</label><input type="date" name="tgl_terbit" id="f_tgl_terbit_str" required></div>
-                            
                             <div class="form-group">
-                                <label style="display: flex; justify-content: space-between; align-items: center;">
-                                    Berlaku Sampai
+                                <label style="display: flex; justify-content: space-between; align-items: center;">Berlaku Sampai
                                     <span style="font-size: 0.8rem; font-weight: normal; display: flex; align-items: center; gap: 5px; cursor: pointer;">
                                         <input type="checkbox" id="f_seumur_hidup_str" style="width: auto; margin: 0; cursor: pointer;"> Seumur Hidup
                                     </span>
                                 </label>
-                                <input type="date" name="tgl_berlaku" id="f_tgl_berlaku_str" required>
+                                <input type="date" name="tgl_berakhir" id="f_tgl_berakhir_str" required>
                             </div>
-
                             <div class="form-group" style="grid-column: span 2;">
                                 <label>Upload Dokumen (PDF/JPG/PNG)</label>
                                 <input type="file" id="f_file_str" accept=".pdf, .jpg, .jpeg, .png">
@@ -88,7 +84,7 @@ function initLogikaSTR(userRole, userNik) {
     const modalForm = document.getElementById('modalFormSTR');
     const form = document.getElementById('formSTR');
     const checkboxSeumurHidup = document.getElementById('f_seumur_hidup_str');
-    const inputTglBerlaku = document.getElementById('f_tgl_berlaku_str');
+    const inputTglBerakhir = document.getElementById('f_tgl_berakhir_str');
     
     let currentData = [];
     let daftarPegawai = [];
@@ -96,15 +92,11 @@ function initLogikaSTR(userRole, userNik) {
 
     checkboxSeumurHidup.addEventListener('change', (e) => {
         if (e.target.checked) {
-            inputTglBerlaku.type = 'text';
-            inputTglBerlaku.value = 'Seumur Hidup';
-            inputTglBerlaku.readOnly = true;
-            inputTglBerlaku.style.backgroundColor = '#e2e8f0';
+            inputTglBerakhir.type = 'text'; inputTglBerakhir.value = 'Seumur Hidup';
+            inputTglBerakhir.readOnly = true; inputTglBerakhir.style.backgroundColor = '#e2e8f0';
         } else {
-            inputTglBerlaku.type = 'date';
-            inputTglBerlaku.value = '';
-            inputTglBerlaku.readOnly = false;
-            inputTglBerlaku.style.backgroundColor = ''; 
+            inputTglBerakhir.type = 'date'; inputTglBerakhir.value = '';
+            inputTglBerakhir.readOnly = false; inputTglBerakhir.style.backgroundColor = ''; 
         }
     });
 
@@ -120,9 +112,8 @@ function initLogikaSTR(userRole, userNik) {
         if (userRole === 'user' && userNik) query = query.eq('nik', userNik);
         
         const { data, error } = await query;
-        if (error) { tbody.innerHTML = `<tr><td colspan="5">Error: ${error.message}</td></tr>`; return; }
-        currentData = data || [];
-        renderTabel(currentData);
+        if (error) { tbody.innerHTML = `<tr><td colspan="6">Error: ${error.message}</td></tr>`; return; }
+        currentData = data || []; renderTabel(currentData);
     }
 
     async function loadDataPegawai() {
@@ -146,19 +137,18 @@ function initLogikaSTR(userRole, userNik) {
     }
 
     function renderTabel(data) {
-        if (data.length === 0) { tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;">Belum ada data STR.</td></tr>`; return; }
+        if (data.length === 0) { tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;">Belum ada data STR.</td></tr>`; return; }
         tbody.innerHTML = data.map(row => `
             <tr>
                 <td><strong>${row.nama || '-'}</strong><br><small>${row.nik || '-'}</small></td>
-                <td><strong>${row.nomor || '-'}</strong></td>
+                <td><strong>${row.no_str || '-'}</strong></td>
+                <td>${row.bidang || '-'}</td>
                 <td>${row.tgl_terbit || '-'}</td>
+                <td>${row.tgl_berakhir === 'Seumur Hidup' ? `<span style="background:#dcfce7; color:#059669; padding: 4px 10px; border-radius: 4px; font-weight:bold;">Seumur Hidup</span>` : (row.tgl_berakhir || '-')}</td>
                 <td>
-                    ${row.tgl_berlaku === 'Seumur Hidup' ? `<span style="background:#dcfce7; color:#059669; padding: 4px 10px; border-radius: 4px; font-weight:bold;">Seumur Hidup</span>` : (row.tgl_berlaku || '-')}
-                </td>
-                <td>
-                    ${row.file_str ? `<a href="${row.file_str}" target="_blank" class="btn btn-link"><i class="fas fa-download"></i></a>` : ''}
-                    <button class="btn btn-edit" onclick="bukaFormSTR('${row.id}')"><i class="fas fa-edit"></i></button>
-                    <button class="btn btn-hapus" onclick="hapusSTR('${row.id}')"><i class="fas fa-trash"></i></button>
+                    ${row.lampiran_url ? `<a href="${row.lampiran_url}" target="_blank" class="btn btn-link"><i class="fas fa-download"></i></a>` : ''}
+                    <button class="btn btn-edit" onclick="bukaFormSTR('${row.id_str}')"><i class="fas fa-edit"></i></button>
+                    <button class="btn btn-hapus" onclick="hapusSTR('${row.id_str}')"><i class="fas fa-trash"></i></button>
                 </td>
             </tr>
         `).join('');
@@ -166,72 +156,57 @@ function initLogikaSTR(userRole, userNik) {
 
     document.getElementById('inputCariSTR').addEventListener('input', (e) => {
         const kw = e.target.value.toLowerCase();
-        renderTabel(currentData.filter(i => (i.nama && i.nama.toLowerCase().includes(kw)) || (i.nomor && i.nomor.toLowerCase().includes(kw))));
+        renderTabel(currentData.filter(i => (i.nama && i.nama.toLowerCase().includes(kw)) || (i.no_str && i.no_str.toLowerCase().includes(kw))));
     });
 
     document.getElementById('btnTambahSTR').onclick = () => {
         form.reset(); document.getElementById('f_id_str').value = ''; document.getElementById('f_old_file_str').value = ''; document.getElementById('file_info_str').innerHTML = '';
         document.getElementById('modalTitleSTR').innerHTML = `<i class="fas fa-plus" style="color:#10b981;"></i> Tambah STR`;
-        
-        checkboxSeumurHidup.checked = false;
-        inputTglBerlaku.type = 'date';
-        inputTglBerlaku.readOnly = false;
-        inputTglBerlaku.style.backgroundColor = '';
+        checkboxSeumurHidup.checked = false; inputTglBerakhir.type = 'date'; inputTglBerakhir.readOnly = false; inputTglBerakhir.style.backgroundColor = '';
 
         if (userRole === 'user' && currentUserData) {
-            inputNama.value = currentUserData.nama; inputNama.readOnly = true;
-            inputNik.value = currentUserData.nik;
+            inputNama.value = currentUserData.nama; inputNama.readOnly = true; inputNik.value = currentUserData.nik;
         }
         modalForm.style.display = 'flex';
     };
 
-    window.bukaFormSTR = (id) => {
+    window.bukaFormSTR = (id_str) => {
         form.reset(); document.getElementById('modalTitleSTR').innerHTML = `<i class="fas fa-edit" style="color:#f59e0b;"></i> Edit STR`;
-        const item = currentData.find(p => p.id === id);
+        const item = currentData.find(p => p.id_str === id_str);
         if(!item) return;
 
-        document.getElementById('f_id_str').value = item.id;
+        document.getElementById('f_id_str').value = item.id_str;
         document.getElementById('f_nama_str').value = item.nama || '';
         document.getElementById('f_nik_str').value = item.nik || '';
-        document.getElementById('f_no_surat_str').value = item.nomor || '';
+        document.getElementById('f_bidang_str').value = item.bidang || '';
+        document.getElementById('f_no_str_str').value = item.no_str || '';
         document.getElementById('f_tgl_terbit_str').value = item.tgl_terbit || '';
         
-        if (item.tgl_berlaku === 'Seumur Hidup') {
-            checkboxSeumurHidup.checked = true;
-            inputTglBerlaku.type = 'text';
-            inputTglBerlaku.value = 'Seumur Hidup';
-            inputTglBerlaku.readOnly = true;
-            inputTglBerlaku.style.backgroundColor = '#e2e8f0';
+        if (item.tgl_berakhir === 'Seumur Hidup') {
+            checkboxSeumurHidup.checked = true; inputTglBerakhir.type = 'text'; inputTglBerakhir.value = 'Seumur Hidup';
+            inputTglBerakhir.readOnly = true; inputTglBerakhir.style.backgroundColor = '#e2e8f0';
         } else {
-            checkboxSeumurHidup.checked = false;
-            inputTglBerlaku.type = 'date';
-            inputTglBerlaku.value = item.tgl_berlaku || '';
-            inputTglBerlaku.readOnly = false;
-            inputTglBerlaku.style.backgroundColor = '';
+            checkboxSeumurHidup.checked = false; inputTglBerakhir.type = 'date'; inputTglBerakhir.value = item.tgl_berakhir || '';
+            inputTglBerakhir.readOnly = false; inputTglBerakhir.style.backgroundColor = '';
         }
         
         if (userRole === 'user') inputNama.readOnly = true;
 
-        document.getElementById('f_old_file_str').value = item.file_str || '';
-        document.getElementById('file_info_str').innerHTML = item.file_str ? `File saat ini: <a href="${item.file_str}" target="_blank">Lihat</a>` : '';
+        document.getElementById('f_old_file_str').value = item.lampiran_url || '';
+        document.getElementById('file_info_str').innerHTML = item.lampiran_url ? `File saat ini: <a href="${item.lampiran_url}" target="_blank">Lihat</a>` : '';
         modalForm.style.display = 'flex';
     };
 
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const btn = document.getElementById('btnSimpanSTR'); 
-        btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Menyimpan...`; 
-        btn.disabled = true;
+        const btn = document.getElementById('btnSimpanSTR'); btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Menyimpan...`; btn.disabled = true;
         
         try {
             const dataObj = Object.fromEntries(new FormData(form).entries());
-            const idData = dataObj.id; delete dataObj.id;
+            const idData = dataObj.id_str; delete dataObj.id_str;
             Object.keys(dataObj).forEach(key => { if (dataObj[key] === "") dataObj[key] = null; });
 
-            if (userRole === 'user' && currentUserData) { 
-                dataObj.nik = currentUserData.nik; 
-                dataObj.nama = currentUserData.nama; 
-            }
+            if (userRole === 'user' && currentUserData) { dataObj.nik = currentUserData.nik; dataObj.nama = currentUserData.nama; }
 
             const fileInput = document.getElementById('f_file_str');
             let finalFileUrl = document.getElementById('f_old_file_str').value; 
@@ -243,42 +218,23 @@ function initLogikaSTR(userRole, userNik) {
                 finalFileUrl = supabase.storage.from('lampiran').getPublicUrl(uniqueName).data.publicUrl;
             }
 
-            dataObj.file_str = finalFileUrl === "" ? null : finalFileUrl;
-            
-            if (checkboxSeumurHidup.checked) {
-                dataObj.tgl_berlaku = 'Seumur Hidup';
-            }
+            dataObj.lampiran_url = finalFileUrl === "" ? null : finalFileUrl;
+            if (checkboxSeumurHidup.checked) dataObj.tgl_berakhir = 'Seumur Hidup';
             
             let res;
-            if (idData) res = await supabase.from('berkas_str').update(dataObj).eq('id', idData);
+            if (idData) res = await supabase.from('berkas_str').update(dataObj).eq('id_str', idData);
             else res = await supabase.from('berkas_str').insert([dataObj]);
             
-            if (res.error) throw res.error; // Cegah keluar otomatis
+            if (res.error) throw res.error; 
 
-            alert("Data STR berhasil disimpan!");
-            modalForm.style.display = 'none'; // Sukses, baru tutup form
-            loadData(); 
+            alert("Data STR berhasil disimpan!"); modalForm.style.display = 'none'; loadData(); 
         } catch (err) {
-            console.error("Error Detail:", err);
-            alert("Gagal menyimpan STR: " + err.message); // Tampilkan pesan error
+            console.error("Error Detail:", err); alert("Gagal menyimpan STR: " + err.message); 
         } finally {
-            btn.innerHTML = `Simpan Dokumen`; 
-            btn.disabled = false; 
+            btn.innerHTML = `Simpan Dokumen`; btn.disabled = false; 
         }
     });
 
-    window.hapusSTR = async (id) => { if(confirm('Hapus dokumen ini?')) { await supabase.from('berkas_str').delete().eq('id', id); loadData(); } };
+    window.hapusSTR = async (id_str) => { if(confirm('Hapus dokumen ini?')) { await supabase.from('berkas_str').delete().eq('id_str', id_str); loadData(); } };
     document.getElementById('btnTutupFormSTR').onclick = () => modalForm.style.display = 'none';
-    
-    // Fitur Download
-    document.getElementById('btnExportExcelSTR').onclick = () => {
-        if(currentData.length === 0) return;
-        const ws = XLSX.utils.json_to_sheet(currentData.map(i => ({"NIK": i.nik, "Nama": i.nama, "No STR": i.nomor, "Terbit": i.tgl_terbit, "Berlaku": i.tgl_berlaku, "File": i.file_str})));
-        const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "STR"); XLSX.writeFile(wb, `Data_STR.xlsx`);
-    };
-    document.getElementById('btnExportPDFSTR').onclick = () => {
-        if(currentData.length === 0) return;
-        const { jsPDF } = window.jspdf; const doc = new jsPDF('landscape'); doc.text("Laporan STR Pegawai", 14, 15);
-        doc.autoTable({ head: [["NIK", "Nama", "No STR", "Tgl Terbit", "Berlaku"]], body: currentData.map(i => [i.nik||'-', i.nama||'-', i.nomor||'-', i.tgl_terbit||'-', i.tgl_berlaku||'-']), startY: 20 }); doc.save(`Data_STR.pdf`);
-    };
 }
