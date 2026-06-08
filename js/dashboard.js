@@ -44,6 +44,7 @@ export function renderDashboard(container) {
             .badge-warn { background: #fff7ed; color: #c2410c; padding: 2px 6px; border-radius: 4px; font-weight: 600; font-size: 0.75rem; border: 1px solid #ffedd5; }
             .percent { font-weight: 600; color: #3b82f6; }
         </style>
+
         <div class="card-grid">
             <div class="card"><div class="card-info"><h3 id="dash_total">-</h3><p>Total Pegawai</p></div><div class="card-icon bg-total"><i class="fas fa-users"></i></div></div>
             <div class="card"><div class="card-info"><h3 id="dash_aktif">-</h3><p>Pegawai Aktif</p></div><div class="card-icon bg-aktif"><i class="fas fa-user-check"></i></div></div>
