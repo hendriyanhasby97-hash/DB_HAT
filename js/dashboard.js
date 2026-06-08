@@ -44,37 +44,6 @@ export function renderDashboard(container) {
             .badge-warn { background: #fff7ed; color: #c2410c; padding: 2px 6px; border-radius: 4px; font-weight: 600; font-size: 0.75rem; border: 1px solid #ffedd5; }
             .percent { font-weight: 600; color: #3b82f6; }
         </style>
-<div style="padding: 20px;">
-            <h3>Dashboard HRIS</h3>
-            <div style="margin-top: 20px;">
-                <button class="btn" style="background:#ef4444;" id="btnDownloadBelumLengkap">
-                    <i class="fas fa-file-download"></i> Download Daftar Belum Lengkap
-                </button>
-            </div>
-            <div id="status-info" style="margin-top: 15px;"></div>
-        </div>
-    `;
-
-    document.getElementById('btnDownloadBelumLengkap').onclick = async () => {
-        // 1. Ambil semua pegawai
-        const { data: semuaPegawai, error: err1 } = await supabase.from('pegawai').select('nik, nama, alamat, no_telp, email');
-        
-        // 2. Ambil data dari tabel pendukung untuk mengecek kelengkapan (misal: cek di tabel sertifikat atau profil yang diisi user)
-        // Kita asumsikan pegawai belum lengkap jika email atau no_telp masih null
-        const belumLengkap = semuaPegawai.filter(p => !p.email || !p.no_telp || !p.alamat);
-
-        if (belumLengkap.length === 0) {
-            alert("Semua pegawai sudah melengkapi data!");
-            return;
-        }
-
-        // 3. Export ke Excel
-        const ws = XLSX.utils.json_to_sheet(belumLengkap);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Belum Lengkap");
-        XLSX.writeFile(wb, `Daftar_Pegawai_Belum_Lengkap_${new Date().toISOString().split('T')[0]}.xlsx`);
-    };
-}
         <div class="card-grid">
             <div class="card"><div class="card-info"><h3 id="dash_total">-</h3><p>Total Pegawai</p></div><div class="card-icon bg-total"><i class="fas fa-users"></i></div></div>
             <div class="card"><div class="card-info"><h3 id="dash_aktif">-</h3><p>Pegawai Aktif</p></div><div class="card-icon bg-aktif"><i class="fas fa-user-check"></i></div></div>
