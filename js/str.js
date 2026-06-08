@@ -55,7 +55,17 @@ export function renderSTR(container, userRole = 'superadmin', userNik = null) {
                         <div class="grid-2">
                             <div class="form-group" style="grid-column: span 2;"><label>Nomor STR</label><input type="text" name="nomor" id="f_no_surat_str" required></div>
                             <div class="form-group"><label>Tanggal Terbit</label><input type="date" name="tgl_terbit" id="f_tgl_terbit_str" required></div>
-                            <div class="form-group"><label>Berlaku Sampai</label><input type="date" name="tgl_berlaku" id="f_tgl_berlaku_str" required></div>
+                            
+                            <div class="form-group">
+                                <label style="display: flex; justify-content: space-between; align-items: center;">
+                                    Berlaku Sampai
+                                    <span style="font-size: 0.8rem; font-weight: normal; display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                                        <input type="checkbox" id="f_seumur_hidup_str" style="width: auto; margin: 0; cursor: pointer;"> Seumur Hidup
+                                    </span>
+                                </label>
+                                <input type="date" name="tgl_berlaku" id="f_tgl_berlaku_str" required>
+                            </div>
+
                             <div class="form-group" style="grid-column: span 2;">
                                 <label>Upload Dokumen (PDF/JPG/PNG)</label>
                                 <input type="file" id="f_file_str" accept=".pdf, .jpg, .jpeg, .png">
@@ -77,9 +87,29 @@ function initLogikaSTR(userRole, userNik) {
     const tbody = document.getElementById('tabelSTR');
     const modalForm = document.getElementById('modalFormSTR');
     const form = document.getElementById('formSTR');
+    
+    // Elemen Seumur Hidup
+    const checkboxSeumurHidup = document.getElementById('f_seumur_hidup_str');
+    const inputTglBerlaku = document.getElementById('f_tgl_berlaku_str');
+
     let currentData = [];
     let daftarPegawai = [];
     let currentUserData = null;
+
+    // --- LOGIKA CHECKBOX SEUMUR HIDUP ---
+    checkboxSeumurHidup.addEventListener('change', (e) => {
+        if (e.target.checked) {
+            inputTglBerlaku.type = 'text';
+            inputTglBerlaku.value = 'Seumur Hidup';
+            inputTglBerlaku.readOnly = true;
+            inputTglBerlaku.style.backgroundColor = '#e2e8f0';
+        } else {
+            inputTglBerlaku.type = 'date';
+            inputTglBerlaku.value = '';
+            inputTglBerlaku.readOnly = false;
+            inputTglBerlaku.style.backgroundColor = ''; 
+        }
+    });
 
     async function initUserContext() {
         if (userRole === 'user' && userNik) {
@@ -125,7 +155,9 @@ function initLogikaSTR(userRole, userNik) {
                 <td><strong>${row.nama || '-'}</strong><br><small>${row.nik || '-'}</small></td>
                 <td><strong>${row.nomor || '-'}</strong></td>
                 <td>${row.tgl_terbit || '-'}</td>
-                <td>${row.tgl_berlaku || '-'}</td>
+                <td>
+                    ${row.tgl_berlaku === 'Seumur Hidup' ? `<span style="background:#dcfce7; color:#059669; padding: 4px 10px; border-radius: 4px; font-weight:bold;">Seumur Hidup</span>` : (row.tgl_berlaku || '-')}
+                </td>
                 <td>
                     ${row.file_str ? `<a href="${row.file_str}" target="_blank" class="btn btn-link"><i class="fas fa-download"></i></a>` : ''}
                     <button class="btn btn-edit" onclick="bukaFormSTR('${row.id}')"><i class="fas fa-edit"></i></button>
@@ -144,6 +176,12 @@ function initLogikaSTR(userRole, userNik) {
         form.reset(); document.getElementById('f_id_str').value = ''; document.getElementById('f_old_file_str').value = ''; document.getElementById('file_info_str').innerHTML = '';
         document.getElementById('modalTitleSTR').innerHTML = `<i class="fas fa-plus" style="color:#10b981;"></i> Tambah STR`;
         
+        // Reset Checkbox & Input
+        checkboxSeumurHidup.checked = false;
+        inputTglBerlaku.type = 'date';
+        inputTglBerlaku.readOnly = false;
+        inputTglBerlaku.style.backgroundColor = '';
+
         if (userRole === 'user' && currentUserData) {
             inputNama.value = currentUserData.nama; inputNama.readOnly = true;
             inputNik.value = currentUserData.nik;
@@ -161,7 +199,21 @@ function initLogikaSTR(userRole, userNik) {
         document.getElementById('f_nik_str').value = item.nik || '';
         document.getElementById('f_no_surat_str').value = item.nomor || '';
         document.getElementById('f_tgl_terbit_str').value = item.tgl_terbit || '';
-        document.getElementById('f_tgl_berlaku_str').value = item.tgl_berlaku || '';
+        
+        // Cek dan set status Seumur Hidup
+        if (item.tgl_berlaku === 'Seumur Hidup') {
+            checkboxSeumurHidup.checked = true;
+            inputTglBerlaku.type = 'text';
+            inputTglBerlaku.value = 'Seumur Hidup';
+            inputTglBerlaku.readOnly = true;
+            inputTglBerlaku.style.backgroundColor = '#e2e8f0';
+        } else {
+            checkboxSeumurHidup.checked = false;
+            inputTglBerlaku.type = 'date';
+            inputTglBerlaku.value = item.tgl_berlaku || '';
+            inputTglBerlaku.readOnly = false;
+            inputTglBerlaku.style.backgroundColor = '';
+        }
         
         if (userRole === 'user') inputNama.readOnly = true;
 
@@ -190,6 +242,12 @@ function initLogikaSTR(userRole, userNik) {
         }
 
         dataObj.file_str = finalFileUrl === "" ? null : finalFileUrl;
+        
+        // Memastikan isian "Seumur Hidup" dikirim ke database
+        if (checkboxSeumurHidup.checked) {
+            dataObj.tgl_berlaku = 'Seumur Hidup';
+        }
+
         if (idData) await supabase.from('berkas_str').update(dataObj).eq('id', idData);
         else await supabase.from('berkas_str').insert([dataObj]);
         
