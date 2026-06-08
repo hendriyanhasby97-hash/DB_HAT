@@ -9,7 +9,7 @@ import { renderSKP } from './skp.js';
 document.addEventListener('DOMContentLoaded', async () => {
     // 2. CEK AUTENTIKASI
     const userRole = sessionStorage.getItem('hris_role');
-    const userNik = sessionStorage.getItem('nik_user');
+    const userNik = sessionStorage.getItem('nik');
 
     if (userRole !== 'user' || !userNik) {
         alert("Sesi tidak valid. Silakan login kembali.");
