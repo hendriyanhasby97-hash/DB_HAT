@@ -123,7 +123,6 @@ function initLogikaSKP(userRole, userNik) {
         if (error) { tbody.innerHTML = `<tr><td colspan="6">Error: ${error.message}</td></tr>`; return; }
         currentData = data || [];
         
-        // Update filter tahun
         const tahunList = [...new Set(currentData.map(i => i.tahun_skp).filter(Boolean))].sort((a,b) => b-a);
         document.getElementById('filterTahunSKP').innerHTML = `<option value="">Semua Tahun</option>` + tahunList.map(t => `<option value="${t}">${t}</option>`).join('');
 
@@ -213,32 +212,49 @@ function initLogikaSKP(userRole, userNik) {
 
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const btn = document.getElementById('btnSimpanSKP'); btn.innerHTML = `Menyimpan...`; btn.disabled = true;
+        const btn = document.getElementById('btnSimpanSKP'); 
+        btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Menyimpan...`; 
+        btn.disabled = true;
         
-        const dataObj = Object.fromEntries(new FormData(form).entries());
-        const idData = dataObj.id; delete dataObj.id;
-        Object.keys(dataObj).forEach(key => { if (dataObj[key] === "") dataObj[key] = null; });
+        try {
+            const dataObj = Object.fromEntries(new FormData(form).entries());
+            const idData = dataObj.id; delete dataObj.id;
+            Object.keys(dataObj).forEach(key => { if (dataObj[key] === "") dataObj[key] = null; });
 
-        if (userRole === 'user' && currentUserData) { 
-            dataObj.nik = currentUserData.nik; 
-            dataObj.nama = currentUserData.nama; 
-            dataObj.nip = currentUserData.nip || null;
+            if (userRole === 'user' && currentUserData) { 
+                dataObj.nik = currentUserData.nik; 
+                dataObj.nama = currentUserData.nama; 
+                dataObj.nip = currentUserData.nip || null;
+            }
+
+            const fileInput = document.getElementById('fskp_lampiran_skp');
+            let finalFileUrl = document.getElementById('fskp_old_lampiran').value; 
+            if (fileInput.files[0]) {
+                const file = fileInput.files[0];
+                const uniqueName = `SKP_${Date.now()}_${Math.random().toString(36).substring(2,7)}.${file.name.split('.').pop()}`;
+                const { error: errUp } = await supabase.storage.from('lampiran').upload(uniqueName, file, { upsert: false });
+                if (errUp) throw errUp;
+                finalFileUrl = supabase.storage.from('lampiran').getPublicUrl(uniqueName).data.publicUrl;
+            }
+
+            dataObj.lampiran_skp = finalFileUrl === "" ? null : finalFileUrl;
+            
+            let res;
+            if (idData) res = await supabase.from('skp_pegawai').update(dataObj).eq('id', idData);
+            else res = await supabase.from('skp_pegawai').insert([dataObj]);
+            
+            if (res.error) throw res.error; // Cegah form tertutup jika gagal
+
+            alert("Data SKP berhasil disimpan!");
+            modalForm.style.display = 'none'; // Sukses, baru tutup form
+            loadData(); 
+        } catch (err) {
+            console.error("Error Detail:", err);
+            alert("Gagal menyimpan SKP: " + err.message); // Tampilkan popup error
+        } finally {
+            btn.innerHTML = `Simpan SKP`; 
+            btn.disabled = false; 
         }
-
-        const fileInput = document.getElementById('fskp_lampiran_skp');
-        let finalFileUrl = document.getElementById('fskp_old_lampiran').value; 
-        if (fileInput.files[0]) {
-            const file = fileInput.files[0];
-            const uniqueName = `SKP_${Date.now()}_${Math.random().toString(36).substring(2,7)}.${file.name.split('.').pop()}`;
-            const { error: errUp } = await supabase.storage.from('lampiran').upload(uniqueName, file, { upsert: false });
-            if (!errUp) finalFileUrl = supabase.storage.from('lampiran').getPublicUrl(uniqueName).data.publicUrl;
-        }
-
-        dataObj.lampiran_skp = finalFileUrl === "" ? null : finalFileUrl;
-        if (idData) await supabase.from('skp_pegawai').update(dataObj).eq('id', idData);
-        else await supabase.from('skp_pegawai').insert([dataObj]);
-        
-        btn.innerHTML = `Simpan SKP`; btn.disabled = false; modalForm.style.display = 'none'; loadData(); 
     });
 
     window.hapusSKP = async (id) => { if(confirm('Hapus dokumen ini?')) { await supabase.from('skp_pegawai').delete().eq('id', id); loadData(); } };
