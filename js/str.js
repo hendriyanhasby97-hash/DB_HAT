@@ -87,16 +87,13 @@ function initLogikaSTR(userRole, userNik) {
     const tbody = document.getElementById('tabelSTR');
     const modalForm = document.getElementById('modalFormSTR');
     const form = document.getElementById('formSTR');
-    
-    // Elemen Seumur Hidup
     const checkboxSeumurHidup = document.getElementById('f_seumur_hidup_str');
     const inputTglBerlaku = document.getElementById('f_tgl_berlaku_str');
-
+    
     let currentData = [];
     let daftarPegawai = [];
     let currentUserData = null;
 
-    // --- LOGIKA CHECKBOX SEUMUR HIDUP ---
     checkboxSeumurHidup.addEventListener('change', (e) => {
         if (e.target.checked) {
             inputTglBerlaku.type = 'text';
@@ -176,7 +173,6 @@ function initLogikaSTR(userRole, userNik) {
         form.reset(); document.getElementById('f_id_str').value = ''; document.getElementById('f_old_file_str').value = ''; document.getElementById('file_info_str').innerHTML = '';
         document.getElementById('modalTitleSTR').innerHTML = `<i class="fas fa-plus" style="color:#10b981;"></i> Tambah STR`;
         
-        // Reset Checkbox & Input
         checkboxSeumurHidup.checked = false;
         inputTglBerlaku.type = 'date';
         inputTglBerlaku.readOnly = false;
@@ -200,7 +196,6 @@ function initLogikaSTR(userRole, userNik) {
         document.getElementById('f_no_surat_str').value = item.nomor || '';
         document.getElementById('f_tgl_terbit_str').value = item.tgl_terbit || '';
         
-        // Cek dan set status Seumur Hidup
         if (item.tgl_berlaku === 'Seumur Hidup') {
             checkboxSeumurHidup.checked = true;
             inputTglBerlaku.type = 'text';
@@ -224,34 +219,52 @@ function initLogikaSTR(userRole, userNik) {
 
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const btn = document.getElementById('btnSimpanSTR'); btn.innerHTML = `Menyimpan...`; btn.disabled = true;
+        const btn = document.getElementById('btnSimpanSTR'); 
+        btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Menyimpan...`; 
+        btn.disabled = true;
         
-        const dataObj = Object.fromEntries(new FormData(form).entries());
-        const idData = dataObj.id; delete dataObj.id;
-        Object.keys(dataObj).forEach(key => { if (dataObj[key] === "") dataObj[key] = null; });
+        try {
+            const dataObj = Object.fromEntries(new FormData(form).entries());
+            const idData = dataObj.id; delete dataObj.id;
+            Object.keys(dataObj).forEach(key => { if (dataObj[key] === "") dataObj[key] = null; });
 
-        if (userRole === 'user' && currentUserData) { dataObj.nik = currentUserData.nik; dataObj.nama = currentUserData.nama; }
+            if (userRole === 'user' && currentUserData) { 
+                dataObj.nik = currentUserData.nik; 
+                dataObj.nama = currentUserData.nama; 
+            }
 
-        const fileInput = document.getElementById('f_file_str');
-        let finalFileUrl = document.getElementById('f_old_file_str').value; 
-        if (fileInput.files[0]) {
-            const file = fileInput.files[0];
-            const uniqueName = `STR_${Date.now()}_${Math.random().toString(36).substring(2,7)}.${file.name.split('.').pop()}`;
-            const { error: errUp } = await supabase.storage.from('lampiran').upload(uniqueName, file, { upsert: false });
-            if (!errUp) finalFileUrl = supabase.storage.from('lampiran').getPublicUrl(uniqueName).data.publicUrl;
+            const fileInput = document.getElementById('f_file_str');
+            let finalFileUrl = document.getElementById('f_old_file_str').value; 
+            if (fileInput.files[0]) {
+                const file = fileInput.files[0];
+                const uniqueName = `STR_${Date.now()}_${Math.random().toString(36).substring(2,7)}.${file.name.split('.').pop()}`;
+                const { error: errUp } = await supabase.storage.from('lampiran').upload(uniqueName, file, { upsert: false });
+                if (errUp) throw errUp;
+                finalFileUrl = supabase.storage.from('lampiran').getPublicUrl(uniqueName).data.publicUrl;
+            }
+
+            dataObj.file_str = finalFileUrl === "" ? null : finalFileUrl;
+            
+            if (checkboxSeumurHidup.checked) {
+                dataObj.tgl_berlaku = 'Seumur Hidup';
+            }
+            
+            let res;
+            if (idData) res = await supabase.from('berkas_str').update(dataObj).eq('id', idData);
+            else res = await supabase.from('berkas_str').insert([dataObj]);
+            
+            if (res.error) throw res.error; // Cegah keluar otomatis
+
+            alert("Data STR berhasil disimpan!");
+            modalForm.style.display = 'none'; // Sukses, baru tutup form
+            loadData(); 
+        } catch (err) {
+            console.error("Error Detail:", err);
+            alert("Gagal menyimpan STR: " + err.message); // Tampilkan pesan error
+        } finally {
+            btn.innerHTML = `Simpan Dokumen`; 
+            btn.disabled = false; 
         }
-
-        dataObj.file_str = finalFileUrl === "" ? null : finalFileUrl;
-        
-        // Memastikan isian "Seumur Hidup" dikirim ke database
-        if (checkboxSeumurHidup.checked) {
-            dataObj.tgl_berlaku = 'Seumur Hidup';
-        }
-
-        if (idData) await supabase.from('berkas_str').update(dataObj).eq('id', idData);
-        else await supabase.from('berkas_str').insert([dataObj]);
-        
-        btn.innerHTML = `Simpan Dokumen`; btn.disabled = false; modalForm.style.display = 'none'; loadData(); 
     });
 
     window.hapusSTR = async (id) => { if(confirm('Hapus dokumen ini?')) { await supabase.from('berkas_str').delete().eq('id', id); loadData(); } };
