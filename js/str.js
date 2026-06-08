@@ -1,367 +1,213 @@
 import { supabase } from './koneksi.js';
-import Papa from 'https://cdn.jsdelivr.net/npm/papaparse@5.4.1/+esm';
-import * as XLSX from 'https://cdn.sheetjs.com/xlsx-0.19.3/package/xlsx.mjs';
-import { jsPDF } from 'https://cdn.jsdelivr.net/npm/jspdf@2.5.1/+esm';
-import autoTable from 'https://cdn.jsdelivr.net/npm/jspdf-autotable@3.5.31/+esm';
 
-export function renderSTR(container) {
+export function renderSTR(container, userRole = 'superadmin', userNik = null) {
     container.innerHTML = `
         <style>
-            .btn { padding: 8px 12px; border: none; border-radius: 4px; cursor: pointer; color: white; font-weight: 600; display: inline-flex; align-items: center; gap: 5px; }
-            .btn-edit { background: #f59e0b; margin-right: 5px; font-size: 0.8rem; padding: 6px 10px;}
-            .btn-hapus { background: #ef4444; font-size: 0.8rem; padding: 6px 10px;}
-            .btn-submit { padding: 12px 20px; background: #3b82f6; color: white; border: none; border-radius: 4px; font-weight: 600; cursor: pointer; }
-            .btn-view { background: #0ea5e9; font-size: 0.8rem; padding: 6px 10px; }
-            
-            .btn-toggle { background: #64748b; font-size: 0.85rem; padding: 6px 12px; }
-            .btn-excel { background: #10b981; }
-            .btn-pdf { background: #ef4444; }
-            .btn-import { background: #0284c7; }
-
-            .form-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; }
-            .form-box { background: white; padding: 25px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 20px; }
-            .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
-            .form-group { margin-bottom: 15px; }
-            .form-group label { display: block; font-weight: 600; margin-bottom: 5px; font-size: 0.9rem; color: #475569; }
-            .form-group input { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 4px; outline: none; }
-            .form-group input:focus { border-color: #3b82f6; }
-            .form-group input:disabled { background: #f1f5f9; cursor: not-allowed; }
-            
-            .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-            .search-box { padding: 8px 15px; border: 1px solid #cbd5e1; border-radius: 4px; outline: none; width: 300px; }
-
-            .table-container { background: white; padding: 20px; border-radius: 8px; overflow-x: auto; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-            table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-            th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e2e8f0; }
-            th { background: #f8fafc; color: #475569; }
-            
-            .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); align-items: center; justify-content: center; z-index: 100; }
-            .modal-content { background: white; padding: 25px; border-radius: 8px; width: 600px; max-height: 90vh; overflow-y: auto; }
-            
-            .countdown-badge { padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 0.8rem; display: inline-block; }
+            .btn { padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; color: white; font-weight: 600; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 5px; }
+            .btn-edit { background: #f59e0b; } .btn-hapus { background: #ef4444; } .btn-detail { background: #0ea5e9; } .btn-tambah, .btn-simpan { background: #10b981; } .btn-excel { background: #16a34a; } .btn-pdf { background: #dc2626; } .btn-link { background: #64748b; }
+            table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; font-size: 0.9rem;} th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e2e8f0; } th { background: #f8fafc; color: #475569;}
+            .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+            .filter-group { display: flex; gap: 10px; flex: 1; } .filter-group input { padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 4px; outline: none; width:250px;}
+            .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); align-items: flex-start; justify-content: center; z-index: 9999; padding: 20px; }
+            .modal-content { background: white; padding: 30px; border-radius: 8px; width: 700px; max-width: 100%; max-height: 90vh; overflow-y: auto; margin-top: 2vh; }
+            .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;}
+            .form-group label { display: block; font-weight: 600; font-size: 0.85rem; color: #475569; margin-bottom: 4px;} .form-group input, .form-group select { width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; outline: none;} .form-group input[readonly] { background: #e2e8f0; cursor: not-allowed; font-weight:bold;}
+            fieldset { border: 1px solid #e2e8f0; padding: 15px; border-radius: 6px; margin-bottom: 15px; background: #fafafa;} legend { font-weight: bold; background: #3b82f6; color: white; padding: 4px 10px; border-radius: 4px; font-size: 0.9rem;}
         </style>
 
-        <div class="form-box" id="boxFormSTR">
-            <div class="form-header">
-                <h2 style="margin:0; color:#1e293b;"><i class="fas fa-id-card-alt"></i> Form Input STR (Surat Tanda Registrasi)</h2>
-                <button class="btn btn-toggle" id="btnSembunyikanFormSTR"><i class="fas fa-eye-slash"></i> Sembunyikan Form</button>
-            </div>
-            
-            <form id="formSTR">
-                <div class="grid-2">
-                    <div class="form-group"><label>NIK</label><input type="text" name="nik" id="ins_nik_str" required autocomplete="off" placeholder="Ketik NIK..."></div>
-                    <div class="form-group"><label>Nama Lengkap</label><input type="text" name="nama" id="ins_nama_str" required autocomplete="off" placeholder="Otomatis dicari..."></div>
-                    <div class="form-group"><label>Bidang / Profesi</label><input type="text" name="bidang" required placeholder="Contoh: Bidan, Apoteker" autocomplete="off"></div>
-                    <div class="form-group"><label>No. STR</label><input type="text" name="no_str" required autocomplete="off"></div>
-                    <div class="form-group"><label>Tanggal Terbit</label><input type="date" name="tgl_terbit" required></div>
-                    <div class="form-group">
-                        <label>Tanggal Berakhir</label>
-                        <input type="date" name="tgl_berakhir" id="ins_tgl_berakhir_str" required>
-                        <label style="display:inline-flex; align-items:center; gap:5px; margin-top:8px; font-weight:normal; font-size:0.85rem;">
-                            <input type="checkbox" id="chk_seumur_hidup_str"> Seumur Hidup
-                        </label>
-                    </div>
-                </div>
-                
-                <div class="form-group">
-                    <label>Lampiran Berkas STR (PDF)</label>
-                    <input type="file" id="form_file_str" accept=".pdf">
-                </div>
-
-                <div style="display:flex; justify-content:flex-end;">
-                    <button type="submit" class="btn btn-submit" id="btnSimpanSTR"><i class="fas fa-save"></i> Simpan Data STR</button>
-                </div>
-            </form>
-        </div>
-
-        <div id="boxShowFormSTR" style="display:none; margin-bottom: 20px;">
-            <button class="btn btn-toggle" style="background:#3b82f6;" id="btnTampilkanFormSTR"><i class="fas fa-eye"></i> Tampilkan Form Input STR</button>
-        </div>
-
         <div class="toolbar">
-            <input type="text" id="inputCariSTR" class="search-box" placeholder="🔍 Cari berdasarkan NIK, Nama, No STR...">
-            <div style="display:flex; gap:10px;">
-                <button class="btn btn-import" id="btnTriggerImportSTR"><i class="fas fa-file-import"></i> Import CSV</button>
-                <input type="file" id="inputCSVSTR" accept=".csv" style="display: none;">
+            <div class="filter-group">
+                <input type="text" id="inputCariSTR" placeholder="🔍 Cari Nomor STR atau Nama...">
+            </div>
+            <div style="display: flex; gap: 10px;">
                 <button class="btn btn-excel" id="btnExportExcelSTR"><i class="fas fa-file-excel"></i> Excel</button>
                 <button class="btn btn-pdf" id="btnExportPDFSTR"><i class="fas fa-file-pdf"></i> PDF</button>
+                <button class="btn btn-tambah" id="btnTambahSTR"><i class="fas fa-plus"></i> Tambah STR</button>
             </div>
         </div>
 
-        <div class="table-container">
-            <h3 style="margin-bottom: 15px; color: #1e293b;">Daftar Surat Tanda Registrasi (STR)</h3>
+        <div style="background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
             <table>
-                <thead>
-                    <tr>
-                        <th>NIK</th>
-                        <th>Nama</th>
-                        <th>No. STR</th>
-                        <th>Tanggal Berakhir</th>
-                        <th>Sisa Masa Berlaku</th>
-                        <th>Berkas</th>
-                        <th>Aksi</th>
-                    </tr>
-                </thead>
-                <tbody id="tabelSTR"><tr><td colspan="7" style="text-align:center;">Memuat data...</td></tr></tbody>
+                <thead><tr><th>Pegawai</th><th>No. STR</th><th>Tanggal Terbit</th><th>Berlaku Sampai</th><th>Aksi</th></tr></thead>
+                <tbody id="tabelSTR"><tr><td colspan="5" style="text-align:center;">Memuat data...</td></tr></tbody>
             </table>
         </div>
 
-        <div class="modal" id="modalEditSTR">
+        <div class="modal" id="modalFormSTR">
             <div class="modal-content">
-                <h3 style="margin-bottom: 20px; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">Edit Data STR</h3>
-                <form id="formEditSTR">
-                    <input type="hidden" name="id_str" id="edit_id_str">
-                    <div class="grid-2">
-                        <div class="form-group"><label>NIK</label><input type="text" name="nik" id="edit_nik_str" required></div>
-                        <div class="form-group"><label>Nama Lengkap</label><input type="text" name="nama" id="edit_nama_str" required></div>
-                        <div class="form-group"><label>Bidang</label><input type="text" name="bidang" id="edit_bidang" required></div>
-                        <div class="form-group"><label>No. STR</label><input type="text" name="no_str" id="edit_no_str" required></div>
-                        <div class="form-group"><label>Tanggal Terbit</label><input type="date" name="tgl_terbit" id="edit_tgl_terbit" required></div>
-                        <div class="form-group">
-                            <label>Tanggal Berakhir</label>
-                            <input type="date" name="tgl_berakhir" id="edit_tgl_berakhir_str">
-                            <label style="display:inline-flex; align-items:center; gap:5px; margin-top:8px; font-weight:normal; font-size:0.85rem;">
-                                <input type="checkbox" id="edit_chk_seumur_hidup_str"> Seumur Hidup
-                            </label>
+                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid #ccc; padding-bottom:10px; margin-bottom: 20px;">
+                    <h3 id="modalTitleSTR" style="margin:0;"><i class="fas fa-edit" style="color:#0ea5e9;"></i> Form STR</h3>
+                    <button class="btn btn-hapus" id="btnTutupFormSTR"><i class="fas fa-times"></i></button>
+                </div>
+                <form id="formSTR">
+                    <input type="hidden" name="id" id="f_id_str">
+                    <fieldset><legend>Identitas Pegawai</legend>
+                        <div class="grid-2">
+                            <datalist id="list_pegawai_str"></datalist>
+                            <div class="form-group" style="grid-column: span 2;">
+                                <label>Nama Lengkap</label>
+                                <input type="text" name="nama" id="f_nama_str" list="list_pegawai_str" placeholder="Ketik nama..." required autocomplete="off">
+                            </div>
+                            <div class="form-group" style="grid-column: span 2;"><label>NIK</label><input type="text" name="nik" id="f_nik_str" readonly required></div>
                         </div>
-                    </div>
-                    <div class="form-group">
-                        <label>Ganti Lampiran Berkas STR Baru (PDF)</label>
-                        <input type="file" id="edit_file_str" accept=".pdf">
-                    </div>
-                    <div style="text-align: right; margin-top: 15px;">
-                        <button type="button" class="btn" style="background:#94a3b8;" id="btnTutupEditSTR">Batal</button>
-                        <button type="submit" class="btn" style="background:#3b82f6;" id="btnUpdateSTR"><i class="fas fa-save"></i> Update</button>
-                    </div>
+                    </fieldset>
+                    <fieldset><legend>Data Dokumen</legend>
+                        <div class="grid-2">
+                            <div class="form-group" style="grid-column: span 2;"><label>Nomor STR</label><input type="text" name="nomor" id="f_no_surat_str" required></div>
+                            <div class="form-group"><label>Tanggal Terbit</label><input type="date" name="tgl_terbit" id="f_tgl_terbit_str" required></div>
+                            <div class="form-group"><label>Berlaku Sampai</label><input type="date" name="tgl_berlaku" id="f_tgl_berlaku_str" required></div>
+                            <div class="form-group" style="grid-column: span 2;">
+                                <label>Upload Dokumen (PDF/JPG/PNG)</label>
+                                <input type="file" id="f_file_str" accept=".pdf, .jpg, .jpeg, .png">
+                                <input type="hidden" id="f_old_file_str">
+                                <div id="file_info_str" style="font-size: 0.8rem; margin-top: 5px; color:#64748b;"></div>
+                            </div>
+                        </div>
+                    </fieldset>
+                    <div style="text-align: right; margin-top: 15px;"><button type="submit" class="btn btn-simpan" id="btnSimpanSTR">Simpan Dokumen</button></div>
                 </form>
             </div>
         </div>
     `;
 
-    initLogikaSTR();
+    initLogikaSTR(userRole, userNik);
 }
 
-function initLogikaSTR() {
-    const formInsert = document.getElementById('formSTR');
-    const formEdit = document.getElementById('formEditSTR');
+function initLogikaSTR(userRole, userNik) {
     const tbody = document.getElementById('tabelSTR');
-    const modal = document.getElementById('modalEditSTR');
-    
-    const chkIns = document.getElementById('chk_seumur_hidup_str');
-    const tglIns = document.getElementById('ins_tgl_berakhir_str');
-    const chkEdit = document.getElementById('edit_chk_seumur_hidup_str');
-    const tglEdit = document.getElementById('edit_tgl_berakhir_str');
+    const modalForm = document.getElementById('modalFormSTR');
+    const form = document.getElementById('formSTR');
+    let currentData = [];
+    let daftarPegawai = [];
+    let currentUserData = null;
 
-    let listData = [];
-    let filteredData = [];
-
-    // FITUR AUTO-SEARCH NAMA BERDASARKAN NIK
-    function setupAutoSearchNIK(inputNikId, inputNamaId) {
-        const inputNik = document.getElementById(inputNikId);
-        const inputNama = document.getElementById(inputNamaId);
-        let timerId;
-
-        inputNik.addEventListener('input', (e) => {
-            clearTimeout(timerId);
-            const nikValue = e.target.value.trim();
-
-            if (nikValue.length >= 6) { // Mulai mencari jika NIK >= 6 digit
-                inputNama.placeholder = "Mencari data pegawai...";
-                timerId = setTimeout(async () => {
-                    const { data, error } = await supabase
-                        .from('pegawai')
-                        .select('nama')
-                        .eq('nik', nikValue)
-                        .maybeSingle(); 
-
-                    if (data && data.nama) {
-                        inputNama.value = data.nama;
-                    } else {
-                        inputNama.placeholder = "Data tidak ditemukan. Ketik manual...";
-                    }
-                }, 500); 
-            }
-        });
-    }
-
-    setupAutoSearchNIK('ins_nik_str', 'ins_nama_str');
-    setupAutoSearchNIK('edit_nik_str', 'edit_nama_str');
-
-    // Logika Checkbox Seumur Hidup
-    chkIns.addEventListener('change', () => {
-        if(chkIns.checked) { tglIns.disabled = true; tglIns.value = ''; tglIns.required = false; }
-        else { tglIns.disabled = false; tglIns.required = true; }
-    });
-    chkEdit.addEventListener('change', () => {
-        if(chkEdit.checked) { tglEdit.disabled = true; tglEdit.value = ''; }
-        else { tglEdit.disabled = false; }
-    });
-
-    document.getElementById('btnSembunyikanFormSTR').onclick = () => { document.getElementById('boxFormSTR').style.display = 'none'; document.getElementById('boxShowFormSTR').style.display = 'block'; };
-    document.getElementById('btnTampilkanFormSTR').onclick = () => { document.getElementById('boxFormSTR').style.display = 'block'; document.getElementById('boxShowFormSTR').style.display = 'none'; };
-
-    function hitungSisaMasaBerlaku(tglAkhirStr) {
-        if (!tglAkhirStr) return { teks: 'Seumur Hidup', bg: '#dcfce7', fg: '#10b981' };
-        
-        const hariIni = new Date();
-        const tglAkhir = new Date(tglAkhirStr);
-        hariIni.setHours(0,0,0,0); tglAkhir.setHours(0,0,0,0);
-
-        if (tglAkhir < hariIni) return { teks: 'Expired / Mati', bg: '#fee2e2', fg: '#ef4444' };
-
-        let thn = tglAkhir.getFullYear() - hariIni.getFullYear();
-        let bln = tglAkhir.getMonth() - hariIni.getMonth();
-        let hri = tglAkhir.getDate() - hariIni.getDate();
-
-        if (hri < 0) {
-            bln--;
-            const bulanLalu = new Date(tglAkhir.getFullYear(), tglAkhir.getMonth(), 0);
-            hri += bulanLalu.getDate();
+    async function initUserContext() {
+        if (userRole === 'user' && userNik) {
+            const { data } = await supabase.from('pegawai').select('nik, nama').eq('nik', userNik).single();
+            currentUserData = data;
         }
-        if (bln < 0) { thn--; bln += 12; }
-
-        const totalSisaBulan = (thn * 12) + bln + (hri / 30);
-
-        let bg = '#dcfce7', fg = '#10b981'; 
-        if (totalSisaBulan <= 3) { bg = '#fee2e2'; fg = '#ef4444'; } 
-        else if (totalSisaBulan <= 6) { bg = '#fef9c3'; fg = '#d97706'; }
-
-        let teksStr = '';
-        if (thn > 0) teksStr += `${thn} Tahun `;
-        if (bln > 0) teksStr += `${bln} Bulan `;
-        teksStr += `${hri} Hari`;
-        if (teksStr === '') teksStr = '0 Hari';
-
-        return { teks: teksStr.trim(), bg: bg, fg: fg };
     }
 
     async function loadData() {
-        const { data, error } = await supabase.from('berkas_str').select('*').order('tgl_berakhir', { ascending: true });
-        if (!error) { listData = data; filteredData = data; renderTabel(filteredData); }
+        let query = supabase.from('berkas_str').select('*').order('tgl_terbit', { ascending: false });
+        if (userRole === 'user' && userNik) query = query.eq('nik', userNik);
+        
+        const { data, error } = await query;
+        if (error) { tbody.innerHTML = `<tr><td colspan="5">Error: ${error.message}</td></tr>`; return; }
+        currentData = data || [];
+        renderTabel(currentData);
+    }
+
+    async function loadDataPegawai() {
+        if (userRole === 'user') return; 
+        const { data } = await supabase.from('pegawai').select('nik, nama');
+        if (data) {
+            daftarPegawai = data;
+            document.getElementById('list_pegawai_str').innerHTML = data.map(p => `<option value="${p.nama}">`).join('');
+        }
+    }
+
+    initUserContext().then(() => { loadData(); loadDataPegawai(); });
+
+    const inputNama = document.getElementById('f_nama_str');
+    const inputNik = document.getElementById('f_nik_str');
+    if (userRole !== 'user') {
+        inputNama.addEventListener('input', (e) => {
+            const p = daftarPegawai.find(x => x.nama === e.target.value);
+            if(p) inputNik.value = p.nik; else inputNik.value = '';
+        });
     }
 
     function renderTabel(data) {
-        if(data.length === 0) { tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">Data kosong.</td></tr>`; return; }
-        
-        tbody.innerHTML = data.map(row => {
-            const hitung = hitungSisaMasaBerlaku(row.tgl_berakhir);
-            return `
-                <tr>
-                    <td>${row.nik || '-'}</td>
-                    <td><strong>${row.nama || '-'}</strong></td>
-                    <td>${row.no_str || '-'}</td>
-                    <td>${row.tgl_berakhir || '-'}</td>
-                    <td><span class="countdown-badge" style="background:${hitung.bg}; color:${hitung.fg};">${hitung.teks}</span></td>
-                    <td>${row.lampiran_url ? `<a href="${row.lampiran_url}" target="_blank" class="btn btn-view"><i class="fas fa-file-pdf"></i> Lihat</a>` : '-'}</td>
-                    <td>
-                        <button class="btn btn-edit" onclick="bukaEditSTR('${row.id_str}')"><i class="fas fa-edit"></i></button>
-                        <button class="btn btn-hapus" onclick="hapusSTR('${row.id_str}')"><i class="fas fa-trash"></i></button>
-                    </td>
-                </tr>
-            `;
-        }).join('');
+        if (data.length === 0) { tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;">Belum ada data STR.</td></tr>`; return; }
+        tbody.innerHTML = data.map(row => `
+            <tr>
+                <td><strong>${row.nama || '-'}</strong><br><small>${row.nik || '-'}</small></td>
+                <td><strong>${row.nomor || '-'}</strong></td>
+                <td>${row.tgl_terbit || '-'}</td>
+                <td>${row.tgl_berlaku || '-'}</td>
+                <td>
+                    ${row.file_str ? `<a href="${row.file_str}" target="_blank" class="btn btn-link"><i class="fas fa-download"></i></a>` : ''}
+                    <button class="btn btn-edit" onclick="bukaFormSTR('${row.id}')"><i class="fas fa-edit"></i></button>
+                    <button class="btn btn-hapus" onclick="hapusSTR('${row.id}')"><i class="fas fa-trash"></i></button>
+                </td>
+            </tr>
+        `).join('');
     }
 
     document.getElementById('inputCariSTR').addEventListener('input', (e) => {
         const kw = e.target.value.toLowerCase();
-        filteredData = listData.filter(p => p.nama.toLowerCase().includes(kw) || p.nik.includes(kw) || p.no_str.toLowerCase().includes(kw));
-        renderTabel(filteredData);
+        renderTabel(currentData.filter(i => (i.nama && i.nama.toLowerCase().includes(kw)) || (i.nomor && i.nomor.toLowerCase().includes(kw))));
     });
 
-    async function uploadFile(fileInput, bucketName) {
-        if (!fileInput || fileInput.files.length === 0) return null;
-        const file = fileInput.files[0];
-        const fileName = `${Date.now()}_${file.name.replace(/\s+/g, '_')}`;
-        const { data, error } = await supabase.storage.from(bucketName).upload(fileName, file);
-        if (error) { alert('Gagal upload berkas: ' + error.message); return null; }
-        return supabase.storage.from(bucketName).getPublicUrl(fileName).data.publicUrl;
-    }
-
-    formInsert.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const btn = document.getElementById('btnSimpanSTR');
-        btn.innerText = "Menyimpan..."; btn.disabled = true;
-
-        const url = await uploadFile(document.getElementById('form_file_str'), 'lampiran_str');
-        const dataObj = Object.fromEntries(new FormData(formInsert).entries());
+    document.getElementById('btnTambahSTR').onclick = () => {
+        form.reset(); document.getElementById('f_id_str').value = ''; document.getElementById('f_old_file_str').value = ''; document.getElementById('file_info_str').innerHTML = '';
+        document.getElementById('modalTitleSTR').innerHTML = `<i class="fas fa-plus" style="color:#10b981;"></i> Tambah STR`;
         
-        dataObj.tgl_berakhir = chkIns.checked ? null : dataObj.tgl_berakhir;
-        if(url) dataObj.lampiran_url = url;
+        if (userRole === 'user' && currentUserData) {
+            inputNama.value = currentUserData.nama; inputNama.readOnly = true;
+            inputNik.value = currentUserData.nik;
+        }
+        modalForm.style.display = 'flex';
+    };
 
-        const { error } = await supabase.from('berkas_str').insert([dataObj]);
-        if(!error) { formInsert.reset(); chkIns.checked = false; tglIns.disabled = false; loadData(); }
-        btn.innerHTML = `<i class="fas fa-save"></i> Simpan Data STR`; btn.disabled = false;
-    });
-
-    window.bukaEditSTR = (id) => {
-        const item = listData.find(p => p.id_str == id);
+    window.bukaFormSTR = (id) => {
+        form.reset(); document.getElementById('modalTitleSTR').innerHTML = `<i class="fas fa-edit" style="color:#f59e0b;"></i> Edit STR`;
+        const item = currentData.find(p => p.id === id);
         if(!item) return;
-        
-        document.getElementById('edit_id_str').value = item.id_str;
-        document.getElementById('edit_nik_str').value = item.nik || '';
-        document.getElementById('edit_nama_str').value = item.nama || '';
-        document.getElementById('edit_bidang').value = item.bidang || '';
-        document.getElementById('edit_no_str').value = item.no_str || '';
-        document.getElementById('edit_tgl_terbit').value = item.tgl_terbit || '';
-        
-        if(!item.tgl_berakhir) { chkEdit.checked = true; tglEdit.disabled = true; tglEdit.value = ''; }
-        else { chkEdit.checked = false; tglEdit.disabled = false; tglEdit.value = item.tgl_berakhir; }
 
-        modal.style.display = 'flex';
+        document.getElementById('f_id_str').value = item.id;
+        document.getElementById('f_nama_str').value = item.nama || '';
+        document.getElementById('f_nik_str').value = item.nik || '';
+        document.getElementById('f_no_surat_str').value = item.nomor || '';
+        document.getElementById('f_tgl_terbit_str').value = item.tgl_terbit || '';
+        document.getElementById('f_tgl_berlaku_str').value = item.tgl_berlaku || '';
+        
+        if (userRole === 'user') inputNama.readOnly = true;
+
+        document.getElementById('f_old_file_str').value = item.file_str || '';
+        document.getElementById('file_info_str').innerHTML = item.file_str ? `File saat ini: <a href="${item.file_str}" target="_blank">Lihat</a>` : '';
+        modalForm.style.display = 'flex';
     };
 
-    document.getElementById('btnTutupEditSTR').onclick = () => modal.style.display = 'none';
-
-    formEdit.addEventListener('submit', async (e) => {
+    form.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const id = document.getElementById('edit_id_str').value;
+        const btn = document.getElementById('btnSimpanSTR'); btn.innerHTML = `Menyimpan...`; btn.disabled = true;
         
-        const dataObj = {
-            nik: document.getElementById('edit_nik_str').value,
-            nama: document.getElementById('edit_nama_str').value,
-            bidang: document.getElementById('edit_bidang').value,
-            no_str: document.getElementById('edit_no_str').value,
-            tgl_terbit: document.getElementById('edit_tgl_terbit').value,
-            tgl_berakhir: chkEdit.checked ? null : document.getElementById('edit_tgl_berakhir_str').value,
-        };
+        const dataObj = Object.fromEntries(new FormData(form).entries());
+        const idData = dataObj.id; delete dataObj.id;
+        Object.keys(dataObj).forEach(key => { if (dataObj[key] === "") dataObj[key] = null; });
 
-        const url = await uploadFile(document.getElementById('edit_file_str'), 'lampiran_str');
-        if(url) dataObj.lampiran_url = url;
+        if (userRole === 'user' && currentUserData) { dataObj.nik = currentUserData.nik; dataObj.nama = currentUserData.nama; }
 
-        const { error } = await supabase.from('berkas_str').update(dataObj).eq('id_str', id);
-        if(!error) { modal.style.display = 'none'; loadData(); } else { alert(error.message); }
+        const fileInput = document.getElementById('f_file_str');
+        let finalFileUrl = document.getElementById('f_old_file_str').value; 
+        if (fileInput.files[0]) {
+            const file = fileInput.files[0];
+            const uniqueName = `STR_${Date.now()}_${Math.random().toString(36).substring(2,7)}.${file.name.split('.').pop()}`;
+            const { error: errUp } = await supabase.storage.from('lampiran').upload(uniqueName, file, { upsert: false });
+            if (!errUp) finalFileUrl = supabase.storage.from('lampiran').getPublicUrl(uniqueName).data.publicUrl;
+        }
+
+        dataObj.file_str = finalFileUrl === "" ? null : finalFileUrl;
+        if (idData) await supabase.from('berkas_str').update(dataObj).eq('id', idData);
+        else await supabase.from('berkas_str').insert([dataObj]);
+        
+        btn.innerHTML = `Simpan Dokumen`; btn.disabled = false; modalForm.style.display = 'none'; loadData(); 
     });
 
-    window.hapusSTR = async (id) => {
-        if(confirm('Hapus data STR ini?')) { await supabase.from('berkas_str').delete().eq('id_str', id); loadData(); }
-    };
-
+    window.hapusSTR = async (id) => { if(confirm('Hapus dokumen ini?')) { await supabase.from('berkas_str').delete().eq('id', id); loadData(); } };
+    document.getElementById('btnTutupFormSTR').onclick = () => modalForm.style.display = 'none';
+    
+    // Fitur Download
     document.getElementById('btnExportExcelSTR').onclick = () => {
-        const wb = XLSX.utils.book_new();
-        const ws = XLSX.utils.json_to_sheet(filteredData.map(r => ({ NIK: r.nik, Nama: r.nama, Bidang: r.bidang, "No STR": r.no_str, "Tgl Berakhir": r.tgl_berakhir || 'Seumur Hidup' })));
-        XLSX.utils.book_append_sheet(wb, ws, "STR");
-        XLSX.writeFile(wb, "Laporan_STR.xlsx");
+        if(currentData.length === 0) return;
+        const ws = XLSX.utils.json_to_sheet(currentData.map(i => ({"NIK": i.nik, "Nama": i.nama, "No STR": i.nomor, "Terbit": i.tgl_terbit, "Berlaku": i.tgl_berlaku, "File": i.file_str})));
+        const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "STR"); XLSX.writeFile(wb, `Data_STR.xlsx`);
     };
-
     document.getElementById('btnExportPDFSTR').onclick = () => {
-        const doc = new jsPDF();
-        doc.text("Laporan Surat Tanda Registrasi (STR) Pegawai", 14, 15);
-        autoTable(doc, { head: [['NIK', 'Nama', 'No STR', 'Tanggal Berakhir']], body: filteredData.map(r => [r.nik, r.nama, r.no_str, r.tgl_berakhir || 'Seumur Hidup']), startY: 22 });
-        doc.save("Laporan_STR.pdf");
+        if(currentData.length === 0) return;
+        const { jsPDF } = window.jspdf; const doc = new jsPDF('landscape'); doc.text("Laporan STR Pegawai", 14, 15);
+        doc.autoTable({ head: [["NIK", "Nama", "No STR", "Tgl Terbit", "Berlaku"]], body: currentData.map(i => [i.nik||'-', i.nama||'-', i.nomor||'-', i.tgl_terbit||'-', i.tgl_berlaku||'-']), startY: 20 }); doc.save(`Data_STR.pdf`);
     };
-
-    document.getElementById('btnTriggerImportSTR').onclick = () => document.getElementById('inputCSVSTR').click();
-    document.getElementById('inputCSVSTR').onchange = (e) => {
-        Papa.parse(e.target.files[0], { header: true, skipEmptyLines: true, complete: async (res) => {
-            const clean = res.data.map(r => {
-                let obj = {};
-                Object.keys(r).forEach(k => obj[k.trim().toLowerCase().replace(/\s+/g, '_')] = r[k] || null);
-                return obj;
-            });
-            const { error } = await supabase.from('berkas_str').insert(clean);
-            if(!error) loadData(); else alert(error.message);
-        }});
-    };
-
-    loadData();
 }
