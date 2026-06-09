@@ -240,22 +240,14 @@ export async function renderDashboard(container) {
             'Ruangan': p.ruangan, 'BPJS Kes': p.no_bpjsn, 'BPJS TK': p.no_bpjsket_taspen, 'NPWP': p.npwp, 'Email': p.email, 'No Telp': p.no_telp
         };
 
-         let ketProfil = [];
-
+        let ketProfil = [];
         for (const [key, val] of Object.entries(reqFields)) {
-
             if ((key === 'TMT Pangkat' || key === 'TMT Berikutnya') && (p.kelompok_pegawai !== 'ASN' && p.kelompok_pegawai !== 'PNS')) continue;
-
             if (!val || String(val).trim() === '') ketProfil.push(key);
-
         }
 
-
-
         if (ketProfil.length > 0) belumProfil.push({ "NIK": p.nik, "Nama": p.nama, "Jabatan": p.jabatan || '-', "Data Kosong": ketProfil.join(", ") });
-
-    }); 
-
+    });
 
     // --- FUNGSI EXPORT ---
     const setBtnLoading = (id, loading, txt) => {
