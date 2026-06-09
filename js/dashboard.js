@@ -242,13 +242,19 @@ export async function renderDashboard(container) {
 
         let ketProfil = [];
         for (const [key, val] of Object.entries(reqFields)) {
-            if ((key === 'TMT Pangkat' || key === 'TMT Berikutnya') && (p.kelompok_pegawai !== 'ASN' && p.kelompok_pegawai !== 'PNS')) continue;
-            if (!val || String(val).trim() === '') ketProfil.push(key);
+            // Bypass cerdas untuk Non-PNS (TMT Pangkat & Berikutnya tidak wajib)
+            if ((key === 'TMT Pangkat' || key === 'TMT Berikutnya') && (p.kelompok_pegawai !== 'ASN' && p.kelompok_pegawai !== 'PNS')) {
+                continue;
+            }
+
+            // --- PERBAIKAN DI SINI ---
+            // Kita cek jika nilainya: null, undefined, string kosong, ATAU tanda strip '-'
+            const isKosong = !val || String(val).trim() === '' || String(val).trim() === '-';
+            
+            if (isKosong) {
+                ketProfil.push(key);
+            }
         }
-
-        if (ketProfil.length > 0) belumProfil.push({ "NIK": p.nik, "Nama": p.nama, "Jabatan": p.jabatan || '-', "Data Kosong": ketProfil.join(", ") });
-    });
-
     // --- FUNGSI EXPORT ---
     const setBtnLoading = (id, loading, txt) => {
         const b = document.getElementById(id);
