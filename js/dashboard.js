@@ -1,235 +1,193 @@
 import { supabase } from './koneksi.js';
 
 export async function renderDashboard(container) {
+    // Tampilkan loading spinner saat data sedang ditarik dari database
     container.innerHTML = `
-        <div style="padding: 20px; background: #f8fafc; border-radius: 10px; min-height: 80vh;">
-            <h3 style="color:#0f172a; margin-bottom: 25px;"><i class="fas fa-chart-pie"></i> Dashboard Rekapitulasi Data HRIS</h3>
-            
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
-                
-                <div style="background: white; padding: 25px; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
-                    <h4 style="margin-bottom: 15px; color:#ef4444;"><i class="fas fa-exclamation-triangle"></i> Data Pegawai Belum Lengkap SIK</h4>
-                    <p style="font-size: 0.9rem; color:#64748b; margin-bottom: 20px; min-height: 45px;">Daftar pegawai yang wajib memiliki SIK/SIP namun belum mengunggah dokumennya di portal.</p>
-                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                        <button class="btn" style="background:#16a34a; color:white; padding: 10px 15px; border:none; border-radius:5px; cursor:pointer;" id="btnSikExcel">
-                            <i class="fas fa-file-excel"></i> Download Excel
-                        </button>
-                        <button class="btn" style="background:#dc2626; color:white; padding: 10px 15px; border:none; border-radius:5px; cursor:pointer;" id="btnSikPDF">
-                            <i class="fas fa-file-pdf"></i> Download PDF
-                        </button>
-                    </div>
-                </div>
-
-                <div style="background: white; padding: 25px; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
-                    <h4 style="margin-bottom: 15px; color:#ef4444;"><i class="fas fa-exclamation-triangle"></i> Data Pegawai Belum Lengkap STR</h4>
-                    <p style="font-size: 0.9rem; color:#64748b; margin-bottom: 20px; min-height: 45px;">Daftar pegawai yang wajib memiliki STR namun belum mengunggah dokumennya di portal.</p>
-                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                        <button class="btn" style="background:#16a34a; color:white; padding: 10px 15px; border:none; border-radius:5px; cursor:pointer;" id="btnStrExcel">
-                            <i class="fas fa-file-excel"></i> Download Excel
-                        </button>
-                        <button class="btn" style="background:#dc2626; color:white; padding: 10px 15px; border:none; border-radius:5px; cursor:pointer;" id="btnStrPDF">
-                            <i class="fas fa-file-pdf"></i> Download PDF
-                        </button>
-                    </div>
-                </div>
-
-                <div style="background: white; padding: 25px; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
-                    <h4 style="margin-bottom: 15px; color:#ef4444;"><i class="fas fa-exclamation-triangle"></i> Data Pegawai Belum Lengkap Profil</h4>
-                    <p style="font-size: 0.9rem; color:#64748b; margin-bottom: 20px; min-height: 45px;">Daftar pegawai yang belum melengkapi seluruh (23 kolom) isian data profil kepegawaian.</p>
-                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                        <button class="btn" style="background:#16a34a; color:white; padding: 10px 15px; border:none; border-radius:5px; cursor:pointer;" id="btnProfilExcel">
-                            <i class="fas fa-file-excel"></i> Download Excel
-                        </button>
-                        <button class="btn" style="background:#dc2626; color:white; padding: 10px 15px; border:none; border-radius:5px; cursor:pointer;" id="btnProfilPDF">
-                            <i class="fas fa-file-pdf"></i> Download PDF
-                        </button>
-                    </div>
-                </div>
-
-            </div>
+        <div style="padding: 50px 20px; text-align: center; color: #64748b;">
+            <h2><i class="fas fa-spinner fa-spin"></i> Memuat Dashboard Demografi...</h2>
         </div>
     `;
 
-    // 1. FUNGSI UNTUK MERUBAH TEKS TOMBOL SAAT LOADING
-    const setBtnLoading = (btnId, isProcessing, originalText) => {
-        const btn = document.getElementById(btnId);
-        if (isProcessing) {
-            btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Proses...`;
-            btn.disabled = true;
-        } else {
-            btn.innerHTML = originalText;
-            btn.disabled = false;
-        }
-    };
+    try {
+        // 1. AMBIL SELURUH DATA PEGAWAI
+        const { data: pegawai, error } = await supabase.from('pegawai').select('*');
+        if (error) throw error;
 
-    // 2. FUNGSI UTAMA MENGAMBIL & MEMISAHKAN DATA
-    async function fetchKategoriData() {
-        // Tarik seluruh kolom yang dibutuhkan untuk pengecekan profil
-        const [
-            { data: semuaPegawai },
-            { data: dataSIK },
-            { data: dataSTR }
-        ] = await Promise.all([
-            supabase.from('pegawai').select(`
-                nik, nama, jabatan, kelompok_jabatan, kelompok_pegawai, 
-                gol, tmt_pangkat, tmt_berikutnya, jenis_kelamin, agama, 
-                masuk_rs, masa_kerja_rs, tempat_lahir, tanggal_lahir, 
-                status_keluarga, alamat, jenjang, fakultas, jurusan, 
-                ruangan, no_bpjsn, no_bpjsket_taspen, npwp, email, no_telp
-            `),
-            supabase.from('berkas_sik').select('nik'),
-            supabase.from('berkas_str').select('nik')
-        ]);
-
-        const nikSIK = new Set((dataSIK || []).map(item => item.nik));
-        const nikSTR = new Set((dataSTR || []).map(item => item.nik));
+        // 2. LOGIKA PERHITUNGAN ANGKA UTAMA
+        const currentYear = new Date().getFullYear().toString();
+        const totalPegawai = pegawai.length;
         
-        const wajibPerizinan = ['Management', 'Tenaga Medis', 'Tenaga Penunjang Medis', 'Tenaga Kesehatan'];
+        // Filter Data Pegawai
+        const pegawaiAktifData = pegawai.filter(p => p.status === 'Aktif');
+        const totalAktif = pegawaiAktifData.length;
+        
+        const totalMasuk = pegawai.filter(p => p.masuk_rs && p.masuk_rs.startsWith(currentYear)).length;
+        const totalKeluar = pegawai.filter(p => ['Resign', 'Pensiun', 'Mutasi', 'Meninggal'].includes(p.status)).length;
 
-        const belumSIK = [];
-        const belumSTR = [];
-        const belumProfil = [];
+        // 3. FUNGSI BANTUAN UNTUK MENGHITUNG KATEGORI (HANYA PEGAWAI AKTIF)
+        const hitungKategori = (data, key) => {
+            const counts = {};
+            data.forEach(item => {
+                const val = item[key] ? item[key].trim() : 'Belum Diisi';
+                counts[val] = (counts[val] || 0) + 1;
+            });
+            // Urutkan dari jumlah terbanyak ke terkecil
+            return Object.fromEntries(Object.entries(counts).sort((a, b) => b[1] - a[1]));
+        };
 
-        (semuaPegawai || []).forEach(p => {
-            const wajibIzin = wajibPerizinan.includes(p.kelompok_jabatan);
+        const rekapJabatan = hitungKategori(pegawaiAktifData, 'kelompok_jabatan');
+        const rekapJK = hitungKategori(pegawaiAktifData, 'jenis_kelamin');
+        const rekapAgama = hitungKategori(pegawaiAktifData, 'agama');
+        const rekapPendidikan = hitungKategori(pegawaiAktifData, 'jenjang');
+
+        // 4. RENDER STRUKTUR HTML DASHBOARD
+        container.innerHTML = `
+            <style>
+                .dash-title { color:#0f172a; margin-bottom: 25px; }
+                .stat-card { background: white; padding: 25px; border-radius: 10px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; display:flex; align-items:center; gap:20px; }
+                .stat-icon { width: 60px; height: 60px; border-radius: 50%; display:flex; align-items:center; justify-content:center; font-size: 1.8rem; color:white; }
+                .stat-info h4 { margin:0; color:#64748b; font-size:0.85rem; text-transform:uppercase; font-weight:600; letter-spacing:0.5px;}
+                .stat-info p { margin: 5px 0 0 0; font-size: 1.8rem; font-weight:bold; color:#0f172a; }
+                
+                .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; margin-bottom: 25px; }
+                .grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 30px; }
+                
+                .panel { background: white; padding: 25px; border-radius: 10px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+                .panel h4 { margin-top:0; color:#334155; margin-bottom: 20px; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px; }
+                
+                table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+                th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #e2e8f0; }
+                th { background: #f8fafc; color: #475569; font-weight: 600; }
+                td:last-child, th:last-child { text-align: center; }
+            </style>
+
+            <div style="padding: 20px; background: #f8fafc; border-radius: 10px; min-height: 80vh;">
+                <h3 class="dash-title"><i class="fas fa-chart-line" style="color:#3b82f6;"></i> Dashboard Demografi Kepegawaian</h3>
+                
+                <div class="grid-4">
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: #3b82f6;"><i class="fas fa-users"></i></div>
+                        <div class="stat-info"><h4>Total Pegawai</h4><p>${totalPegawai}</p></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: #10b981;"><i class="fas fa-user-check"></i></div>
+                        <div class="stat-info"><h4>Pegawai Aktif</h4><p>${totalAktif}</p></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: #f59e0b;"><i class="fas fa-user-plus"></i></div>
+                        <div class="stat-info"><h4>Masuk (${currentYear})</h4><p>${totalMasuk}</p></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: #ef4444;"><i class="fas fa-user-minus"></i></div>
+                        <div class="stat-info"><h4>Pegawai Keluar</h4><p>${totalKeluar}</p></div>
+                    </div>
+                </div>
+
+                <div class="grid-2">
+                    <div class="panel">
+                        <h4><i class="fas fa-briefcase"></i> Kelompok Jabatan (Aktif)</h4>
+                        <div style="position: relative; height: 250px;"><canvas id="chartJabatan"></canvas></div>
+                    </div>
+                    <div class="panel">
+                        <h4><i class="fas fa-venus-mars"></i> Jenis Kelamin (Aktif)</h4>
+                        <div style="position: relative; height: 250px;"><canvas id="chartJK"></canvas></div>
+                    </div>
+                    <div class="panel">
+                        <h4><i class="fas fa-graduation-cap"></i> Pendidikan (Aktif)</h4>
+                        <div style="position: relative; height: 250px;"><canvas id="chartPendidikan"></canvas></div>
+                    </div>
+                    <div class="panel">
+                        <h4><i class="fas fa-praying-hands"></i> Agama (Aktif)</h4>
+                        <div style="position: relative; height: 250px;"><canvas id="chartAgama"></canvas></div>
+                    </div>
+                </div>
+
+                <div class="grid-2">
+                    <div class="panel">
+                        <h4>Rekapitulasi Kelompok Jabatan</h4>
+                        <table>
+                            <thead><tr><th>Kelompok Jabatan</th><th>Jumlah Pegawai</th></tr></thead>
+                            <tbody id="tabelJabatan"></tbody>
+                        </table>
+                    </div>
+                    <div class="panel">
+                        <h4>Rekapitulasi Jenis Kelamin</h4>
+                        <table>
+                            <thead><tr><th>Jenis Kelamin</th><th>Jumlah Pegawai</th></tr></thead>
+                            <tbody id="tabelJK"></tbody>
+                        </table>
+                    </div>
+                    <div class="panel">
+                        <h4>Rekapitulasi Tingkat Pendidikan</h4>
+                        <table>
+                            <thead><tr><th>Jenjang Pendidikan</th><th>Jumlah Pegawai</th></tr></thead>
+                            <tbody id="tabelPendidikan"></tbody>
+                        </table>
+                    </div>
+                    <div class="panel">
+                        <h4>Rekapitulasi Agama</h4>
+                        <table>
+                            <thead><tr><th>Agama</th><th>Jumlah Pegawai</th></tr></thead>
+                            <tbody id="tabelAgama"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // 5. RENDER DIAGRAM MENGGUNAKAN CHART.JS
+        const chartPalette = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316'];
+
+        const drawChart = (canvasId, type, dataObj) => {
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            const labels = Object.keys(dataObj);
+            const values = Object.values(dataObj);
             
-            // Pengecekan SIK & STR
-            if (wajibIzin && !nikSIK.has(p.nik)) {
-                belumSIK.push({ "NIK": p.nik, "Nama": p.nama, "Jabatan": p.jabatan || '-', "Keterangan": "Belum Upload SIK" });
-            }
-            if (wajibIzin && !nikSTR.has(p.nik)) {
-                belumSTR.push({ "NIK": p.nik, "Nama": p.nama, "Jabatan": p.jabatan || '-', "Keterangan": "Belum Upload STR" });
-            }
-
-            // Pengecekan Lengkap 23 Kolom Profil
-            const requiredFields = {
-                'Kel. Pegawai': p.kelompok_pegawai,
-                'Kel. Jabatan': p.kelompok_jabatan,
-                'Golongan': p.gol,
-                'TMT Pangkat': p.tmt_pangkat,
-                'TMT Berikutnya': p.tmt_berikutnya,
-                'Jabatan': p.jabatan,
-                'Jenis Kelamin': p.jenis_kelamin,
-                'Agama': p.agama,
-                'Masuk RS': p.masuk_rs,
-                'Masa Kerja RS': p.masa_kerja_rs,
-                'Tempat Lahir': p.tempat_lahir,
-                'Tanggal Lahir': p.tanggal_lahir,
-                'Status Keluarga': p.status_keluarga,
-                'Alamat': p.alamat,
-                'Jenjang': p.jenjang,
-                'Fakultas': p.fakultas,
-                'Jurusan': p.jurusan,
-                'Ruangan': p.ruangan,
-                'BPJS Kes': p.no_bpjsn,
-                'BPJS TK': p.no_bpjsket_taspen,
-                'NPWP': p.npwp,
-                'Email': p.email,
-                'No Telp': p.no_telp
-            };
-
-            let ketProfil = [];
-            for (const [fieldName, val] of Object.entries(requiredFields)) {
-                // Bypass cerdas: TMT Pangkat & TMT Berikutnya dimaklumi kosong jika BUKAN PNS/ASN
-                if (fieldName === 'TMT Pangkat' || fieldName === 'TMT Berikutnya') {
-                    if (p.kelompok_pegawai !== 'ASN' && p.kelompok_pegawai !== 'PNS') continue;
+            new Chart(ctx, {
+                type: type,
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Jumlah Pegawai',
+                        data: values,
+                        backgroundColor: type === 'doughnut' ? chartPalette : '#3b82f6',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: type === 'doughnut', position: 'right' } },
+                    scales: type === 'bar' ? { y: { beginAtZero: true, ticks: { stepSize: 1 } } } : {}
                 }
+            });
+        };
 
-                // Jika nilainya null, undefined, atau string kosong
-                if (!val || String(val).trim() === '') {
-                    ketProfil.push(fieldName);
-                }
+        // Gambar Chart
+        drawChart('chartJabatan', 'bar', rekapJabatan);
+        drawChart('chartJK', 'doughnut', rekapJK);
+        drawChart('chartPendidikan', 'bar', rekapPendidikan);
+        drawChart('chartAgama', 'bar', rekapAgama);
+
+        // 6. RENDER DATA KE DALAM TABEL
+        const drawTable = (tableId, dataObj) => {
+            const tbody = document.getElementById(tableId);
+            let html = '';
+            for (const [kategori, jumlah] of Object.entries(dataObj)) {
+                html += `<tr><td>${kategori}</td><td><strong>${jumlah}</strong></td></tr>`;
             }
+            if (Object.keys(dataObj).length === 0) html = `<tr><td colspan="2" style="text-align:center;">Tidak ada data</td></tr>`;
+            tbody.innerHTML = html;
+        };
 
-            if (ketProfil.length > 0) {
-                belumProfil.push({ 
-                    "NIK": p.nik, 
-                    "Nama": p.nama, 
-                    "Jabatan": p.jabatan || '-', 
-                    "Data Kosong": ketProfil.join(", ") 
-                });
-            }
-        });
+        // Isi Tabel
+        drawTable('tabelJabatan', rekapJabatan);
+        drawTable('tabelJK', rekapJK);
+        drawTable('tabelPendidikan', rekapPendidikan);
+        drawTable('tabelAgama', rekapAgama);
 
-        return { belumSIK, belumSTR, belumProfil };
+    } catch (err) {
+        console.error(err);
+        container.innerHTML = `<div style="padding: 20px; color: red;"><h3>Gagal memuat Dashboard: ${err.message}</h3></div>`;
     }
-
-    // 3. FUNGSI EKSPOR EXCEL
-    function exportKeExcel(data, fileName) {
-        if (data.length === 0) {
-            alert("Luar biasa! Tidak ada pegawai yang bermasalah pada kategori ini.");
-            return;
-        }
-        const ws = XLSX.utils.json_to_sheet(data);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Rekap");
-        XLSX.writeFile(wb, `${fileName}_${new Date().toISOString().split('T')[0]}.xlsx`);
-    }
-
-    // 4. FUNGSI EKSPOR PDF
-    function exportKePDF(data, title, fileName) {
-        if (data.length === 0) {
-            alert("Luar biasa! Tidak ada pegawai yang bermasalah pada kategori ini.");
-            return;
-        }
-        const { jsPDF } = window.jspdf;
-        // Gunakan orientasi 'landscape' karena rincian data kosong profil mungkin sangat panjang
-        const doc = new jsPDF('l', 'mm', 'a4'); 
-        doc.text(title, 14, 15);
-        
-        const isProfil = title.includes("Profil");
-        const headKolom = isProfil ? [["No", "NIK", "Nama", "Jabatan", "Rincian Data Kosong"]] : [["No", "NIK", "Nama", "Jabatan", "Keterangan"]];
-        const rows = data.map((i, index) => [index + 1, i.NIK, i.Nama, i.Jabatan, i["Data Kosong"] || i.Keterangan]);
-        
-        doc.autoTable({ head: headKolom, body: rows, startY: 20 });
-        doc.save(`${fileName}_${new Date().toISOString().split('T')[0]}.pdf`);
-    }
-
-    // ==========================================
-    // PASANG EVENT LISTENER KE TOMBOL SIK
-    // ==========================================
-    document.getElementById('btnSikExcel').onclick = async function() {
-        setBtnLoading('btnSikExcel', true);
-        const { belumSIK } = await fetchKategoriData();
-        exportKeExcel(belumSIK, "Belum_Lengkap_SIK");
-        setBtnLoading('btnSikExcel', false, '<i class="fas fa-file-excel"></i> Download Excel');
-    };
-    document.getElementById('btnSikPDF').onclick = async function() {
-        setBtnLoading('btnSikPDF', true);
-        const { belumSIK } = await fetchKategoriData();
-        exportKePDF(belumSIK, "Laporan Pegawai Belum Memiliki SIK/SIP", "Belum_Lengkap_SIK");
-        setBtnLoading('btnSikPDF', false, '<i class="fas fa-file-pdf"></i> Download PDF');
-    };
-
-    // ==========================================
-    // PASANG EVENT LISTENER KE TOMBOL STR
-    // ==========================================
-    document.getElementById('btnStrExcel').onclick = async function() {
-        setBtnLoading('btnStrExcel', true);
-        const { belumSTR } = await fetchKategoriData();
-        exportKeExcel(belumSTR, "Belum_Lengkap_STR");
-        setBtnLoading('btnStrExcel', false, '<i class="fas fa-file-excel"></i> Download Excel');
-    };
-    document.getElementById('btnStrPDF').onclick = async function() {
-        setBtnLoading('btnStrPDF', true);
-        const { belumSTR } = await fetchKategoriData();
-        exportKePDF(belumSTR, "Laporan Pegawai Belum Memiliki STR", "Belum_Lengkap_STR");
-        setBtnLoading('btnStrPDF', false, '<i class="fas fa-file-pdf"></i> Download PDF');
-    };
-
-    // ==========================================
-    // PASANG EVENT LISTENER KE TOMBOL PROFIL
-    // ==========================================
-    document.getElementById('btnProfilExcel').onclick = async function() {
-        setBtnLoading('btnProfilExcel', true);
-        const { belumProfil } = await fetchKategoriData();
-        exportKeExcel(belumProfil, "Belum_Lengkap_Profil");
-        setBtnLoading('btnProfilExcel', false, '<i class="fas fa-file-excel"></i> Download Excel');
-    };
-    document.getElementById('btnProfilPDF').onclick = async function() {
-        setBtnLoading('btnProfilPDF', true);
-        const { belumProfil } = await fetchKategoriData();
-        exportKePDF(belumProfil, "Laporan Pegawai Belum Melengkapi Seluruh Profil", "Belum_Lengkap_Profil");
-        setBtnLoading('btnProfilPDF', false, '<i class="fas fa-file-pdf"></i> Download PDF');
-    };
 }
