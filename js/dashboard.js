@@ -35,7 +35,7 @@ export async function renderDashboard(container) {
 
                 <div style="background: white; padding: 25px; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
                     <h4 style="margin-bottom: 15px; color:#ef4444;"><i class="fas fa-exclamation-triangle"></i> Data Pegawai Belum Lengkap Profil</h4>
-                    <p style="font-size: 0.9rem; color:#64748b; margin-bottom: 20px; min-height: 45px;">Daftar pegawai yang belum melengkapi data kontak dasar (seperti Email atau No Telepon).</p>
+                    <p style="font-size: 0.9rem; color:#64748b; margin-bottom: 20px; min-height: 45px;">Daftar pegawai yang belum melengkapi seluruh (23 kolom) isian data profil kepegawaian.</p>
                     <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                         <button class="btn" style="background:#16a34a; color:white; padding: 10px 15px; border:none; border-radius:5px; cursor:pointer;" id="btnProfilExcel">
                             <i class="fas fa-file-excel"></i> Download Excel
@@ -64,12 +64,19 @@ export async function renderDashboard(container) {
 
     // 2. FUNGSI UTAMA MENGAMBIL & MEMISAHKAN DATA
     async function fetchKategoriData() {
+        // Tarik seluruh kolom yang dibutuhkan untuk pengecekan profil
         const [
             { data: semuaPegawai },
             { data: dataSIK },
             { data: dataSTR }
         ] = await Promise.all([
-            supabase.from('pegawai').select('nik, nama, email, no_telp, jabatan, kelompok_jabatan'),
+            supabase.from('pegawai').select(`
+                nik, nama, jabatan, kelompok_jabatan, kelompok_pegawai, 
+                gol, tmt_pangkat, tmt_berikutnya, jenis_kelamin, agama, 
+                masuk_rs, masa_kerja_rs, tempat_lahir, tanggal_lahir, 
+                status_keluarga, alamat, jenjang, fakultas, jurusan, 
+                ruangan, no_bpjsn, no_bpjsket_taspen, npwp, email, no_telp
+            `),
             supabase.from('berkas_sik').select('nik'),
             supabase.from('berkas_str').select('nik')
         ]);
@@ -77,7 +84,6 @@ export async function renderDashboard(container) {
         const nikSIK = new Set((dataSIK || []).map(item => item.nik));
         const nikSTR = new Set((dataSTR || []).map(item => item.nik));
         
-        // Kelompok jabatan yang diwajibkan upload izin
         const wajibPerizinan = ['Management', 'Tenaga Medis', 'Tenaga Penunjang Medis', 'Tenaga Kesehatan'];
 
         const belumSIK = [];
@@ -87,22 +93,61 @@ export async function renderDashboard(container) {
         (semuaPegawai || []).forEach(p => {
             const wajibIzin = wajibPerizinan.includes(p.kelompok_jabatan);
             
-            // Cek SIK
+            // Pengecekan SIK & STR
             if (wajibIzin && !nikSIK.has(p.nik)) {
                 belumSIK.push({ "NIK": p.nik, "Nama": p.nama, "Jabatan": p.jabatan || '-', "Keterangan": "Belum Upload SIK" });
             }
-            
-            // Cek STR
             if (wajibIzin && !nikSTR.has(p.nik)) {
                 belumSTR.push({ "NIK": p.nik, "Nama": p.nama, "Jabatan": p.jabatan || '-', "Keterangan": "Belum Upload STR" });
             }
 
-            // Cek Profil (Email atau No Telp belum diisi)
-            if (!p.email || !p.no_telp) {
-                let ket = [];
-                if (!p.email) ket.push("Email");
-                if (!p.no_telp) ket.push("No Telp");
-                belumProfil.push({ "NIK": p.nik, "Nama": p.nama, "Jabatan": p.jabatan || '-', "Keterangan": `${ket.join(" & ")} belum diisi` });
+            // Pengecekan Lengkap 23 Kolom Profil
+            const requiredFields = {
+                'Kel. Pegawai': p.kelompok_pegawai,
+                'Kel. Jabatan': p.kelompok_jabatan,
+                'Golongan': p.gol,
+                'TMT Pangkat': p.tmt_pangkat,
+                'TMT Berikutnya': p.tmt_berikutnya,
+                'Jabatan': p.jabatan,
+                'Jenis Kelamin': p.jenis_kelamin,
+                'Agama': p.agama,
+                'Masuk RS': p.masuk_rs,
+                'Masa Kerja RS': p.masa_kerja_rs,
+                'Tempat Lahir': p.tempat_lahir,
+                'Tanggal Lahir': p.tanggal_lahir,
+                'Status Keluarga': p.status_keluarga,
+                'Alamat': p.alamat,
+                'Jenjang': p.jenjang,
+                'Fakultas': p.fakultas,
+                'Jurusan': p.jurusan,
+                'Ruangan': p.ruangan,
+                'BPJS Kes': p.no_bpjsn,
+                'BPJS TK': p.no_bpjsket_taspen,
+                'NPWP': p.npwp,
+                'Email': p.email,
+                'No Telp': p.no_telp
+            };
+
+            let ketProfil = [];
+            for (const [fieldName, val] of Object.entries(requiredFields)) {
+                // Bypass cerdas: TMT Pangkat & TMT Berikutnya dimaklumi kosong jika BUKAN PNS/ASN
+                if (fieldName === 'TMT Pangkat' || fieldName === 'TMT Berikutnya') {
+                    if (p.kelompok_pegawai !== 'ASN' && p.kelompok_pegawai !== 'PNS') continue;
+                }
+
+                // Jika nilainya null, undefined, atau string kosong
+                if (!val || String(val).trim() === '') {
+                    ketProfil.push(fieldName);
+                }
+            }
+
+            if (ketProfil.length > 0) {
+                belumProfil.push({ 
+                    "NIK": p.nik, 
+                    "Nama": p.nama, 
+                    "Jabatan": p.jabatan || '-', 
+                    "Data Kosong": ketProfil.join(", ") 
+                });
             }
         });
 
@@ -128,10 +173,15 @@ export async function renderDashboard(container) {
             return;
         }
         const { jsPDF } = window.jspdf;
-        const doc = new jsPDF('p', 'mm', 'a4');
+        // Gunakan orientasi 'landscape' karena rincian data kosong profil mungkin sangat panjang
+        const doc = new jsPDF('l', 'mm', 'a4'); 
         doc.text(title, 14, 15);
-        const rows = data.map((i, index) => [index + 1, i.NIK, i.Nama, i.Jabatan, i.Keterangan]);
-        doc.autoTable({ head: [["No", "NIK", "Nama", "Jabatan", "Keterangan"]], body: rows, startY: 20 });
+        
+        const isProfil = title.includes("Profil");
+        const headKolom = isProfil ? [["No", "NIK", "Nama", "Jabatan", "Rincian Data Kosong"]] : [["No", "NIK", "Nama", "Jabatan", "Keterangan"]];
+        const rows = data.map((i, index) => [index + 1, i.NIK, i.Nama, i.Jabatan, i["Data Kosong"] || i.Keterangan]);
+        
+        doc.autoTable({ head: headKolom, body: rows, startY: 20 });
         doc.save(`${fileName}_${new Date().toISOString().split('T')[0]}.pdf`);
     }
 
@@ -179,7 +229,7 @@ export async function renderDashboard(container) {
     document.getElementById('btnProfilPDF').onclick = async function() {
         setBtnLoading('btnProfilPDF', true);
         const { belumProfil } = await fetchKategoriData();
-        exportKePDF(belumProfil, "Laporan Pegawai Belum Melengkapi Profil", "Belum_Lengkap_Profil");
+        exportKePDF(belumProfil, "Laporan Pegawai Belum Melengkapi Seluruh Profil", "Belum_Lengkap_Profil");
         setBtnLoading('btnProfilPDF', false, '<i class="fas fa-file-pdf"></i> Download PDF');
     };
 }
