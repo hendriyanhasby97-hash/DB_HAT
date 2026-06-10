@@ -511,22 +511,44 @@ function initLogikaPegawai(userRole) {
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
             const btnSimpan = document.getElementById('btnSimpanData');
-            btnSimpan.innerText = "Menyimpan...";
-            const formData = new FormData(form);
-            const dataObj = Object.fromEntries(formData.entries());
-            const id_pegawai = dataObj.id_pegawai;
-            delete dataObj.id_pegawai;
+            btnSimpan.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Menyimpan...`;
+            btnSimpan.disabled = true; // Kunci tombol agar tidak diklik 2x
+            
+            try {
+                const formData = new FormData(form);
+                const dataObj = Object.fromEntries(formData.entries());
+                const id_pegawai = dataObj.id_pegawai;
+                delete dataObj.id_pegawai;
 
-            Object.keys(dataObj).forEach(key => { if (dataObj[key] === "") dataObj[key] = null; });
+                // Ubah string kosong menjadi null
+                Object.keys(dataObj).forEach(key => { if (dataObj[key] === "") dataObj[key] = null; });
 
-            if (id_pegawai) {
-                await supabase.from('pegawai').update(dataObj).eq('id_pegawai', id_pegawai);
-            } else {
-                await supabase.from('pegawai').insert([dataObj]);
+                let res;
+                if (id_pegawai) {
+                    // Mode Edit
+                    res = await supabase.from('pegawai').update(dataObj).eq('id_pegawai', id_pegawai);
+                } else {
+                    // Mode Tambah Baru
+                    res = await supabase.from('pegawai').insert([dataObj]);
+                }
+
+                // CEK APAKAH ADA ERROR DARI SUPABASE
+                if (res.error) throw res.error;
+
+                // Jika sukses:
+                alert("Data Pegawai berhasil disimpan!");
+                modalForm.style.display = 'none';
+                loadData();
+                
+            } catch (error) {
+                console.error("Error Detail:", error);
+                // Munculkan popup peringatan alasan gagalnya
+                alert("Gagal menyimpan data pegawai:\n" + error.message);
+            } finally {
+                // Kembalikan tombol seperti semula
+                btnSimpan.innerHTML = `<i class="fas fa-save"></i> Simpan Data`;
+                btnSimpan.disabled = false;
             }
-            btnSimpan.innerHTML = `<i class="fas fa-save"></i> Simpan Data`;
-            modalForm.style.display = 'none';
-            loadData();
         });
     }
 
