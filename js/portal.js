@@ -1,23 +1,25 @@
 import { supabase } from './koneksi.js';
 
-// 1. IMPORT MODUL DARI FILE EKSTERNAL
-import { renderSIK } from './sik.js';
-import { renderSTR } from './str.js';
-import { renderSertifikat } from './sertifikat.js';
-import { renderSKP } from './skp.js';
+// PERHATIAN: Jika file-file ini belum Anda buat di folder js/, 
+// biarkan tanda // di depannya agar aplikasi tidak error (ngeblank putih).
+// Jika sudah dibuat, silakan hapus tanda // nya.
+// import { renderSIK } from './sik.js';
+// import { renderSTR } from './str.js';
+// import { renderSertifikat } from './sertifikat.js';
+// import { renderSKP } from './skp.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
-    // 2. CEK AUTENTIKASI
+    // 1. CEK AUTENTIKASI
     const userRole = sessionStorage.getItem('hris_role');
     const userNik = sessionStorage.getItem('nik_user');
 
     if (userRole !== 'user' || !userNik) {
         alert("Sesi tidak valid. Silakan login kembali.");
-        window.location.href = '/DB_HAT/'; // <-- Sudah Diperbarui
+        window.location.href = 'index.html'; // <-- Dikembalikan ke index.html agar aman
         return;
     }
 
-    // 3. AMBIL DATA PEGAWAI DARI SUPABASE
+    // 2. AMBIL DATA PEGAWAI DARI SUPABASE
     const { data: pegawai, error } = await supabase
         .from('pegawai')
         .select('*')
@@ -26,13 +28,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (error || !pegawai) {
         alert("Data Pegawai tidak ditemukan di server.");
+        window.location.href = 'index.html';
         return;
     }
 
     // Tampilkan Nama di Topbar
     document.getElementById('badge-nama').innerHTML = `<i class="fas fa-user-check" style="color:#10b981;"></i> ${pegawai.nama}`;
 
-    // 4. LOGIKA KONDISIONAL MENU (Sembunyikan menu berdasarkan jabatan)
+    // 3. LOGIKA KONDISIONAL MENU (Sembunyikan menu berdasarkan jabatan)
     const allowedPerizinan = ['Management', 'Tenaga Medis', 'Tenaga Penunjang Medis', 'Tenaga Kesehatan'];
     if (!allowedPerizinan.includes(pegawai.kelompok_jabatan)) {
         const menuPerizinan = document.getElementById('menu-perizinan');
@@ -44,7 +47,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if(menuSkp) menuSkp.style.display = 'none';
     }
 
-    // 5. SISTEM ROUTING HALAMAN PORTAL
+    // 4. SISTEM ROUTING HALAMAN PORTAL
     window.loadPage = (page, element = null) => {
         const container = document.getElementById('app-content');
         const pageTitle = document.getElementById('page-title');
@@ -62,33 +65,38 @@ document.addEventListener('DOMContentLoaded', async () => {
                 break;
             case 'sik': 
                 pageTitle.innerText = "DOKUMEN SIK / SIP SAYA"; 
-                renderSIK(container, userRole, userNik);
+                // renderSIK(container, userRole, userNik);
+                container.innerHTML = "<h4>Fitur SIK sedang dikembangkan...</h4>";
                 break;
             case 'str': 
                 pageTitle.innerText = "DOKUMEN STR SAYA"; 
-                renderSTR(container, userRole, userNik);
+                // renderSTR(container, userRole, userNik);
+                container.innerHTML = "<h4>Fitur STR sedang dikembangkan...</h4>";
                 break;
             case 'sertifikat': 
                 pageTitle.innerText = "SERTIFIKAT SAYA"; 
-                renderSertifikat(container, userRole, userNik);
+                // renderSertifikat(container, userRole, userNik);
+                container.innerHTML = "<h4>Fitur Sertifikat sedang dikembangkan...</h4>";
                 break;
             case 'skp': 
                 pageTitle.innerText = "SASARAN KINERJA (SKP) SAYA"; 
-                renderSKP(container, userRole, userNik);
+                // renderSKP(container, userRole, userNik);
+                container.innerHTML = "<h4>Fitur SKP sedang dikembangkan...</h4>";
                 break;
             default:
                 renderProfilSaya(container, pegawai);
         }
     };
 
-    // 6. FUNGSI LOGOUT
+    // 5. FUNGSI LOGOUT
     document.getElementById('btnUserLogout').addEventListener('click', () => {
         if(confirm("Apakah Anda yakin ingin keluar dari Portal?")) {
             sessionStorage.clear();
-            window.location.href = '/DB_HAT/'; // <-- Sudah Diperbarui
+            window.location.href = 'index.html'; // <-- Dikembalikan ke index.html agar aman
         }
     });
 
+    // Load halaman utama saat pertama kali dibuka
     window.loadPage('profil');
 });
 
@@ -298,7 +306,6 @@ function renderProfilSaya(container, pegawai) {
         inpNip.addEventListener('input', () => {
             let nip = inpNip.value.replace(/[^0-9]/g, '');
             if (nip.length >= 14) {
-                // Diambil dari NIP karakter ke-9 (index 8): 4 digit Tahun, 2 digit Bulan
                 const year = nip.substring(8, 12);
                 const month = nip.substring(12, 14);
                 if (year > 1900 && month >= 1 && month <= 12) {
@@ -316,9 +323,9 @@ function renderProfilSaya(container, pegawai) {
 
         if (tglLahirVal && !isNaN(bupVal)) {
             let tgl = new Date(tglLahirVal);
-            tgl.setFullYear(tgl.getFullYear() + bupVal); // Tambah tahun BUP
-            tgl.setMonth(tgl.getMonth() + 1);            // Maju ke bulan berikutnya
-            tgl.setDate(1);                              // Set ke tanggal 1
+            tgl.setFullYear(tgl.getFullYear() + bupVal); 
+            tgl.setMonth(tgl.getMonth() + 1);            
+            tgl.setDate(1);                              
 
             let y = tgl.getFullYear();
             let m = String(tgl.getMonth() + 1).padStart(2, '0');
@@ -380,7 +387,6 @@ function renderProfilSaya(container, pegawai) {
         });
         document.getElementById('form_masuk_rs').addEventListener('input', hitungMasaKerja);
         
-        // Panggil trigger kalkulasi saat pertama kali form terbuka
         hitungMasaKerja();
         cekStatusPegawai();
         hitungTmtPensiun();
@@ -398,7 +404,7 @@ function renderProfilSaya(container, pegawai) {
         const formData = new FormData(e.target);
         const dataObj = Object.fromEntries(formData.entries());
         Object.keys(dataObj).forEach(key => { if (dataObj[key] === "") dataObj[key] = null; });
-        delete dataObj.nik; // Kunci NIK agar tidak bisa dirubah via payload
+        delete dataObj.nik; 
         
         const { error } = await supabase.from('pegawai').update(dataObj).eq('nik', pegawai.nik);
         if (error) { 
