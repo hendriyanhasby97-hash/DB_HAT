@@ -105,7 +105,7 @@ document.addEventListener('DOMContentLoaded', () => {
             window.loadPage('dashboard');
         } 
         else if (currentRole === 'user') {
-            window.location.href = '/DB_HAT/';
+            window.location.href = 'index.html';
         }
     }
 
@@ -142,7 +142,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (data) {
                 sessionStorage.setItem('hris_role', 'user');
                 sessionStorage.setItem('nik_user', data.nik); 
-                window.location.href = '/DB_HAT/';
+                window.location.href = 'index.html';
             } else {
                 loginError.style.display = 'block';
                 btnSubmit.innerHTML = `Masuk Sistem <i class="fas fa-sign-in-alt"></i>`;
