@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (userRole !== 'user' || !userNik) {
         alert("Sesi tidak valid. Silakan login kembali.");
-        window.location.href = 'index.html';
+        window.location.href = '/DB_HAT/'; // <-- Sudah Diperbarui
         return;
     }
 
@@ -85,7 +85,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('btnUserLogout').addEventListener('click', () => {
         if(confirm("Apakah Anda yakin ingin keluar dari Portal?")) {
             sessionStorage.clear();
-            window.location.href = 'index.html';
+            window.location.href = '/DB_HAT/'; // <-- Sudah Diperbarui
         }
     });
 
