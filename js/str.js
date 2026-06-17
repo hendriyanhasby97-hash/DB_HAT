@@ -38,7 +38,8 @@ export function renderSTR(container, userRole = 'superadmin', userNik = null) {
                     <button class="btn btn-hapus" id="btnTutupFormSTR"><i class="fas fa-times"></i></button>
                 </div>
                 <form id="formSTR">
-                    <input type="hidden" name="id_str" id="f_id_str">
+                    <input type="hidden" name="id" id="f_id_str">
+                    
                     <fieldset><legend>Identitas Pegawai</legend>
                         <div class="grid-2">
                             <datalist id="list_pegawai_str"></datalist>
@@ -147,8 +148,8 @@ function initLogikaSTR(userRole, userNik) {
                 <td>${row.tgl_berakhir === 'Seumur Hidup' ? `<span style="background:#dcfce7; color:#059669; padding: 4px 10px; border-radius: 4px; font-weight:bold;">Seumur Hidup</span>` : (row.tgl_berakhir || '-')}</td>
                 <td>
                     ${row.lampiran_url ? `<a href="${row.lampiran_url}" target="_blank" class="btn btn-link"><i class="fas fa-download"></i></a>` : ''}
-                    <button class="btn btn-edit" onclick="bukaFormSTR('${row.id_str}')"><i class="fas fa-edit"></i></button>
-                    <button class="btn btn-hapus" onclick="hapusSTR('${row.id_str}')"><i class="fas fa-trash"></i></button>
+                    <button class="btn btn-edit" onclick="bukaFormSTR('${row.id}')"><i class="fas fa-edit"></i></button>
+                    <button class="btn btn-hapus" onclick="hapusSTR('${row.id}')"><i class="fas fa-trash"></i></button>
                 </td>
             </tr>
         `).join('');
@@ -170,12 +171,14 @@ function initLogikaSTR(userRole, userNik) {
         modalForm.style.display = 'flex';
     };
 
-    window.bukaFormSTR = (id_str) => {
+    // UBAHAN 3: Parameter dirubah ke id, dan pencarian diubah membandingkan String
+    window.bukaFormSTR = (id) => {
         form.reset(); document.getElementById('modalTitleSTR').innerHTML = `<i class="fas fa-edit" style="color:#f59e0b;"></i> Edit STR`;
-        const item = currentData.find(p => p.id_str === id_str);
+        
+        const item = currentData.find(p => String(p.id) === String(id));
         if(!item) return;
 
-        document.getElementById('f_id_str').value = item.id_str;
+        document.getElementById('f_id_str').value = item.id;
         document.getElementById('f_nama_str').value = item.nama || '';
         document.getElementById('f_nik_str').value = item.nik || '';
         document.getElementById('f_bidang_str').value = item.bidang || '';
@@ -203,7 +206,11 @@ function initLogikaSTR(userRole, userNik) {
         
         try {
             const dataObj = Object.fromEntries(new FormData(form).entries());
-            const idData = dataObj.id_str; delete dataObj.id_str;
+            
+            // UBAHAN 4: Tangkap id, lalu hapus agar tidak bentrok
+            const idData = dataObj.id; 
+            delete dataObj.id;
+            
             Object.keys(dataObj).forEach(key => { if (dataObj[key] === "") dataObj[key] = null; });
 
             if (userRole === 'user' && currentUserData) { dataObj.nik = currentUserData.nik; dataObj.nama = currentUserData.nama; }
@@ -213,6 +220,8 @@ function initLogikaSTR(userRole, userNik) {
             if (fileInput.files[0]) {
                 const file = fileInput.files[0];
                 const uniqueName = `STR_${Date.now()}_${Math.random().toString(36).substring(2,7)}.${file.name.split('.').pop()}`;
+                
+                // Note: Pastikan bucket "lampiran" sudah diset "Public" dan diberi Policy "true"
                 const { error: errUp } = await supabase.storage.from('lampiran').upload(uniqueName, file, { upsert: false });
                 if (errUp) throw errUp;
                 finalFileUrl = supabase.storage.from('lampiran').getPublicUrl(uniqueName).data.publicUrl;
@@ -222,8 +231,12 @@ function initLogikaSTR(userRole, userNik) {
             if (checkboxSeumurHidup.checked) dataObj.tgl_berakhir = 'Seumur Hidup';
             
             let res;
-            if (idData) res = await supabase.from('berkas_str').update(dataObj).eq('id_str', idData);
-            else res = await supabase.from('berkas_str').insert([dataObj]);
+            if (idData) {
+                // UBAHAN 5: Target kolom update dirubah jadi 'id'
+                res = await supabase.from('berkas_str').update(dataObj).eq('id', idData);
+            } else {
+                res = await supabase.from('berkas_str').insert([dataObj]);
+            }
             
             if (res.error) throw res.error; 
 
@@ -235,6 +248,13 @@ function initLogikaSTR(userRole, userNik) {
         }
     });
 
-    window.hapusSTR = async (id_str) => { if(confirm('Hapus dokumen ini?')) { await supabase.from('berkas_str').delete().eq('id_str', id_str); loadData(); } };
+    // UBAHAN 6: Target kolom hapus dirubah jadi 'id'
+    window.hapusSTR = async (id) => { 
+        if(confirm('Hapus dokumen ini?')) { 
+            await supabase.from('berkas_str').delete().eq('id', id); 
+            loadData(); 
+        } 
+    };
+    
     document.getElementById('btnTutupFormSTR').onclick = () => modalForm.style.display = 'none';
 }
