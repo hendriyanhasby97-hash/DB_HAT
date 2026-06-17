@@ -94,7 +94,6 @@ export async function renderSPKRKK(container, userRole = 'user', userNik = '') {
     const modal = document.getElementById('modalSPK');
     const form = document.getElementById('formSPK');
 
-    // Load Dropdown Pegawai jika Admin
     if (isAdmin) {
         const { data: listPegawai } = await supabase.from('pegawai').select('nik, nama').order('nama');
         if (listPegawai) {
@@ -103,14 +102,9 @@ export async function renderSPKRKK(container, userRole = 'user', userNik = '') {
         }
     }
 
-    // Ambil Data Berkas
     async function loadDataSPK() {
         let query = supabase.from('berkas_spkrkk').select('*');
-        
-        // Jika user biasa, batasi hanya melihat datanya sendiri
-        if (!isAdmin) {
-            query = query.eq('nik', userNik);
-        }
+        if (!isAdmin) query = query.eq('nik', userNik);
 
         const { data, error } = await query.order('id', { ascending: false });
         
@@ -119,7 +113,6 @@ export async function renderSPKRKK(container, userRole = 'user', userNik = '') {
             return;
         }
 
-        // Ambil info nama pegawai jika admin
         let mapPegawai = {};
         if (isAdmin) {
             const { data: peg } = await supabase.from('pegawai').select('nik, nama');
@@ -150,19 +143,15 @@ export async function renderSPKRKK(container, userRole = 'user', userNik = '') {
         }).join('');
     }
 
-    // Aksi Tambah & Batal
     document.getElementById('btnTambahSPK').onclick = () => { form.reset(); modal.style.display = 'flex'; };
     document.getElementById('btnBatalSPK').onclick = () => modal.style.display = 'none';
 
-    // Simpan Data
     form.onsubmit = async (e) => {
         e.preventDefault();
         const fData = new FormData(form);
         const dataObj = Object.fromEntries(fData.entries());
         
-        // Jika bukan admin, paksa isi NIK dari NIK user yang sedang login
         if (!isAdmin) dataObj.nik = userNik;
-
         if (!dataObj.nik) return alert("Pilih pegawai terlebih dahulu!");
 
         const { error } = await supabase.from('berkas_spkrkk').insert([dataObj]);
@@ -175,7 +164,6 @@ export async function renderSPKRKK(container, userRole = 'user', userNik = '') {
         }
     };
 
-    // Fungsi Hapus global agar bisa dipanggil dari baris tabel HTML
     window.hapusSPK = async (id) => {
         if (confirm("Apakah Anda yakin ingin menghapus arsip dokumen SPK & RKK ini?")) {
             await supabase.from('berkas_spkrkk').delete().eq('id', id);
