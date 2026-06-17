@@ -7,9 +7,17 @@ import { renderSIK } from './sik.js';
 import { renderSTR } from './str.js';
 import { renderSertifikat } from './sertifikat.js';
 import { renderSKP } from './skp.js';
-
-// IMPORT FILE PENGATURAN BARU
 import { renderPengaturan } from './pengaturan.js';
+
+// === 1. MENAMBAHKAN IMPORT UNTUK MENU BARU ===
+import { renderSPKRKK } from './spkrkk.js';
+import { renderOPPE } from './oppe.js';
+
+// Kredensial Hardcode (Bisa Anda sesuaikan)
+const SUPERADMIN_USER = 'superadmin';
+const SUPERADMIN_PASS = 'superadmin123';
+const ADMIN_USER = 'admin';
+const ADMIN_PASS = 'admin123';
 
 window.loadPage = (page, element = null) => {
     const container = document.getElementById('app-content');
@@ -34,126 +42,111 @@ window.loadPage = (page, element = null) => {
             renderPegawai(container, currentRole); 
             break;
         case 'pegawai-masuk': 
-            pageTitle.innerText = "DATA PEGAWAI MASUK (BARU)"; 
-            renderPegawaiMasuk(container); 
+            pageTitle.innerText = "DATA PEGAWAI MASUK"; 
+            renderPegawaiMasuk(container, currentRole); 
             break;
         case 'pegawai-keluar': 
-            pageTitle.innerText = "DATA PEGAWAI KELUAR / MUTASI"; 
-            renderPegawaiKeluar(container); 
+            pageTitle.innerText = "DATA PEGAWAI KELUAR"; 
+            renderPegawaiKeluar(container, currentRole); 
             break;
         case 'sik': 
-            pageTitle.innerText = "SURAT IZIN KERJA (SIK / SIP)"; 
-            renderSIK(container); 
+            pageTitle.innerText = "DATA SIK / SIP"; 
+            renderSIK(container, currentRole); 
             break;
         case 'str': 
-            pageTitle.innerText = "SURAT TANDA REGISTRASI (STR)"; 
-            renderSTR(container); 
+            pageTitle.innerText = "DATA STR"; 
+            renderSTR(container, currentRole); 
             break;
         case 'sertifikat': 
-            pageTitle.innerText = "SERTIFIKAT PEGAWAI"; 
-            renderSertifikat(container, currentRole);
+            pageTitle.innerText = "DATA SERTIFIKAT"; 
+            renderSertifikat(container, currentRole); 
             break;
         case 'skp': 
-            pageTitle.innerText = "SASARAN KINERJA PEGAWAI (SKP)"; 
-            renderSKP(container, currentRole);
+            pageTitle.innerText = "DATA SKP"; 
+            renderSKP(container, currentRole); 
             break;
-            
-        // --- ROUTE UNTUK MENU PENGATURAN ---
-        case 'pengaturan-golongan': 
-            pageTitle.innerText = "PENGATURAN MASTER GOLONGAN"; 
-            renderPengaturan(container, 'golongan');
+        case 'pengaturan': 
+            pageTitle.innerText = "PENGATURAN SISTEM"; 
+            renderPengaturan(container, currentRole); 
             break;
-        case 'pengaturan-jabatan': 
-            pageTitle.innerText = "PENGATURAN MASTER JABATAN"; 
-            renderPengaturan(container, 'jabatan');
+
+        // === 2. MENAMBAHKAN LOGIKA ROUTING HALAMAN ===
+        case 'spkrkk': 
+            pageTitle.innerText = "SURAT PENUGASAN KLINIS & RKK"; 
+            renderSPKRKK(container, currentRole); 
             break;
-        case 'pengaturan-ruangan': 
-            pageTitle.innerText = "PENGATURAN MASTER RUANGAN"; 
-            renderPengaturan(container, 'ruangan');
+        case 'oppe': 
+            pageTitle.innerText = "EVALUASI PRAKTIK KLINIS (OPPE)"; 
+            renderOPPE(container, currentRole); 
             break;
+
+        default:
+            renderDashboard(container);
     }
 };
 
 document.addEventListener('DOMContentLoaded', () => {
     const loginContainer = document.getElementById('login-admin-container');
-    const mainLayout = document.getElementById('main-admin-layout');
-    const formLoginUtama = document.getElementById('formLoginUtama');
-    const loginError = document.getElementById('login_error');
-    const roleBadge = document.getElementById('role-badge');
-
-    const SUPERADMIN_USER = "superadmin";
-    const SUPERADMIN_PASS = "superadmin123";
-
-    const ADMIN_USER = "admin";
-    const ADMIN_PASS = "admin123";
+    const mainApp = document.getElementById('main-app');
+    const formLogin = document.getElementById('formLoginAdmin');
+    const loginError = document.getElementById('loginError');
 
     function setupLayoutAkses() {
-        loginContainer.style.display = 'none';
-        
-        const currentRole = sessionStorage.getItem('hris_role');
-        
-        if (currentRole === 'superadmin') {
-            document.body.classList.remove('view-only-mode');
-            roleBadge.innerHTML = '<i class="fas fa-crown" style="color: #f59e0b;"></i> Superadmin (Full Akses)';
-            mainLayout.style.display = 'flex';
-            window.loadPage('dashboard');
-        } 
-        else if (currentRole === 'admin') {
-            document.body.classList.add('view-only-mode'); 
-            roleBadge.innerHTML = '<i class="fas fa-eye" style="color: #10b981;"></i> Admin (View Only)';
-            mainLayout.style.display = 'flex';
-            window.loadPage('dashboard');
-        } 
-        else if (currentRole === 'user') {
-            window.location.href = 'portal.html';
-        }
+        if(loginContainer) loginContainer.style.display = 'none';
+        if(mainApp) mainApp.style.display = 'flex';
+        window.loadPage('dashboard');
     }
 
-    if (sessionStorage.getItem('hris_role')) {
+    const activeRole = sessionStorage.getItem('hris_role');
+    if (activeRole === 'superadmin' || activeRole === 'admin') {
         setupLayoutAkses();
     }
 
-    formLoginUtama.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        const userInput = document.getElementById('input_username').value.trim();
-        const passInput = document.getElementById('input_password').value;
-        const btnSubmit = document.getElementById('btnSubmitLogin');
+    if (formLogin) {
+        formLogin.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const userInput = document.getElementById('input_username').value.trim();
+            const passInput = document.getElementById('input_password').value;
+            const btnSubmit = document.getElementById('btnSubmitLogin');
 
-        loginError.style.display = 'none';
-        btnSubmit.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Memvalidasi...`;
+            if(loginError) loginError.style.display = 'none';
+            btnSubmit.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Memvalidasi...`;
 
-        if (userInput === SUPERADMIN_USER && passInput === SUPERADMIN_PASS) {
-            sessionStorage.setItem('hris_role', 'superadmin');
-            setupLayoutAkses();
-        } 
-        else if (userInput === ADMIN_USER && passInput === ADMIN_PASS) {
-            sessionStorage.setItem('hris_role', 'admin');
-            setupLayoutAkses();
-        } 
-        else {
-            const { data, error } = await supabase
-                .from('pegawai')
-                .select('*')
-                .eq('nik', userInput)
-                .eq('password', passInput)
-                .maybeSingle();
+            if (userInput === SUPERADMIN_USER && passInput === SUPERADMIN_PASS) {
+                sessionStorage.setItem('hris_role', 'superadmin');
+                setupLayoutAkses();
+            } 
+            else if (userInput === ADMIN_USER && passInput === ADMIN_PASS) {
+                sessionStorage.setItem('hris_role', 'admin');
+                setupLayoutAkses();
+            } 
+            else {
+                const { data, error } = await supabase
+                    .from('pegawai')
+                    .select('*')
+                    .eq('nik', userInput)
+                    .eq('password', passInput)
+                    .maybeSingle();
 
-            if (data) {
-                sessionStorage.setItem('hris_role', 'user');
-                sessionStorage.setItem('nik_user', data.nik); 
-                window.location.href = 'portal.html';
-            } else {
-                loginError.style.display = 'block';
-                btnSubmit.innerHTML = `Masuk Sistem <i class="fas fa-sign-in-alt"></i>`;
+                if (data) {
+                    sessionStorage.setItem('hris_role', 'user');
+                    sessionStorage.setItem('nik_user', data.nik); 
+                    window.location.href = 'portal.html';
+                } else {
+                    if(loginError) loginError.style.display = 'block';
+                    btnSubmit.innerHTML = `Masuk Sistem <i class="fas fa-sign-in-alt"></i>`;
+                }
             }
-        }
-    });
+        });
+    }
 
-    document.getElementById('btnAdminLogout').addEventListener('click', () => {
-        if (confirm("Keluar dari Dashboard HRIS?")) {
-            sessionStorage.clear();
-            location.reload(); 
-        }
-    });
+    const btnLogout = document.getElementById('btnAdminLogout');
+    if (btnLogout) {
+        btnLogout.addEventListener('click', () => {
+            if (confirm("Keluar dari Dashboard HRIS?")) {
+                sessionStorage.clear();
+                location.reload(); 
+            }
+        });
+    }
 });
