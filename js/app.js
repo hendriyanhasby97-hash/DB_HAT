@@ -7,6 +7,9 @@ import { renderSIK } from './sik.js';
 import { renderSTR } from './str.js';
 import { renderSertifikat } from './sertifikat.js';
 import { renderSKP } from './skp.js';
+import { renderSPKRKK } from './spkrkk.js';
+import { renderOPPE } from './oppe.js';
+
 
 // IMPORT FILE PENGATURAN BARU
 import { renderPengaturan } from './pengaturan.js';
@@ -57,6 +60,14 @@ window.loadPage = (page, element = null) => {
             pageTitle.innerText = "SASARAN KINERJA PEGAWAI (SKP)"; 
             renderSKP(container, currentRole);
             break;
+        case 'spkrkk': 
+             pageTitle.innerText = "SURAT PENUGASAN KLINIS & RKK SAYA"; 
+             renderSPKRKK(container, userRole, userNik);
+             break;
+         case 'oppe': 
+             pageTitle.innerText = "EVALUASI PRAKTIK KLINIS (OPPE) SAYA"; 
+             renderOPPE(container, userRole, userNik);
+             break;
             
         // --- ROUTE UNTUK MENU PENGATURAN ---
         case 'pengaturan-golongan': 
