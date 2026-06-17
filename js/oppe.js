@@ -28,7 +28,7 @@ export async function renderOPPE(container, userRole = 'user', userNik = '') {
 
         <div>
             <div style="display: flex; justify-content: space-between; align-items: center;">
-                <p style="color: #64748b; margin-top:0;">Evaluasi Praktik Profesional Berkelanjutan (Ongoing Professional Practice Evaluation) Tenaga Medis.</p>
+                <p style="color: #64748b; margin-top:0;">Evaluasi Praktik Profesional Berkelanjutan (Ongoing Professional Practice Evaluation).</p>
                 <button class="btn btn-tambah" id="btnTambahOPPE"><i class="fas fa-plus"></i> Input Hasil OPPE</button>
             </div>
 
