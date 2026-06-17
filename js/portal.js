@@ -5,6 +5,8 @@ import { renderSIK } from './sik.js';
 import { renderSTR } from './str.js';
 import { renderSertifikat } from './sertifikat.js';
 import { renderSKP } from './skp.js';
+import { renderSPKRKK } from './spkrkk.js';
+import { renderOPPE } from './oppe.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
     // 2. CEK AUTENTIKASI
@@ -76,6 +78,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                 pageTitle.innerText = "SASARAN KINERJA (SKP) SAYA"; 
                 renderSKP(container, userRole, userNik);
                 break;
+            case 'spkrkk': 
+                 pageTitle.innerText = "SURAT PENUGASAN KLINIS & RKK SAYA"; 
+                 renderSPKRKK(container, userRole, userNik);
+                 break;
+            case 'oppe': 
+                 pageTitle.innerText = "EVALUASI PRAKTIK KLINIS (OPPE) SAYA"; 
+                 renderOPPE(container, userRole, userNik);
+                 break;
+                
             default:
                 renderProfilSaya(container, pegawai);
         }
