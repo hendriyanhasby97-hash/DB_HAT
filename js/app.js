@@ -66,7 +66,7 @@ window.loadPage = (page, element = null) => {
         case 'oppe': 
             pageTitle.innerText = "EVALUASI PRAKTIK KLINIS (OPPE)"; 
             renderOPPE(container, currentRole);
-            
+            break;
             
         // --- ROUTE UNTUK MENU PENGATURAN ---
         case 'pengaturan-golongan': 
